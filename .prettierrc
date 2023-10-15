@@ -1,0 +1,10 @@
+{
+    "tabWidth": 4,
+    "bracketSpacing": true,
+    "arrowParens": "avoid",
+    "chainedCall": true,
+    "singleQuote": false,
+    "semi": true,
+    "chainExtraNewline": true,
+    "bracketSameLine": false
+}
