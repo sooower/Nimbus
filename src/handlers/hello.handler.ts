@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { Handler, Get, Post } from "../decorators/route.decorator";
 
 @Handler("/hello")
-export default class HelloHandler {
+export class HelloHandler {
     @Get("/sayHello")
     async sayHello(req: Request, res: Response) {
         const { name } = req.query;

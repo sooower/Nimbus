@@ -8,12 +8,17 @@ import { ROUTER_PATH, ROUTER_PREFIX } from "../decorators/route.decorator";
 export function autoRegisterRoutes(app: Express): void {
     const files = globSync(process.env.NODE_ENV == "prod" ? "dist/handlers/**/*.js" : "src/handlers/**/*.ts");
     files.forEach(it => {
-        const handler = require(path.resolve(it)).default.prototype;
-        if (handler) {
-            const routerPrefix = Reflect.getMetadata(ROUTER_PREFIX, handler);
-            const routerPath = Reflect.getMetadata(ROUTER_PATH, handler);
-            app.use(routerPrefix, routerPath);
-        }
+        const obj = require(path.resolve(it));
+        Object.keys(obj)
+            .filter(it => it.endsWith("Handler"))
+            .forEach(it => {
+                const handler = obj[it].prototype;
+                if (handler) {
+                    const routerPrefix = Reflect.getMetadata(ROUTER_PREFIX, handler);
+                    const routerPath = Reflect.getMetadata(ROUTER_PATH, handler);
+                    app.use(routerPrefix, routerPath);
+                }
+            });
     });
 }
 
