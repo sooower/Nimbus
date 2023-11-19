@@ -6,15 +6,14 @@ import "reflect-metadata";
 import { autoRegisterRoutes, globalConfig } from "./utils/core";
 import { corsMiddleware } from "./middlewares/cors.middleware";
 import bodyParser from "body-parser";
+import apiDocuments from "../../../FOMO/api.fomoremit.net/api-docs.json";
 
 const app = express();
 
 // Parse request body
 app.use(bodyParser.json());
 
-// Load swagger server
-const swaggerDocument = JSON.parse(fs.readFileSync("/Users/Sower/Projects/FOMO/api.fomoremit.net/docs.json", "utf-8"));
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(apiDocuments));
 
 // Auto register routes
 autoRegisterRoutes(app);
