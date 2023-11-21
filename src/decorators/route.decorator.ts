@@ -3,8 +3,8 @@ import { Request, Response, NextFunction, Router } from "express";
 export const ROUTER_PREFIX = "router_prefix";
 export const ROUTER_PATH = "router_path";
 
-export function Handler(prefix?: string): ClassDecorator {
-    let routePrefix = prefix == "/" || !prefix ? "" : prefix; // FIXME
+export function Controller(prefix?: string): ClassDecorator {
+    let routePrefix = prefix == "/" || !prefix ? "" : prefix;
 
     if (!routePrefix.startsWith("/")) {
         routePrefix = "/" + routePrefix;

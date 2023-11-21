@@ -1,12 +1,13 @@
 import { Request, Response } from "express";
-import { Handler, Get, Post } from "../decorators/route.decorator";
+import { Controller, Get, Post } from "../decorators/route.decorator";
+import { Req, Res } from "../types/core";
 
-@Handler("/hello")
-export class HelloHandler {
+@Controller("/hello")
+export class HelloController {
     @Get("/sayHello")
-    async sayHello(req: Request, res: Response) {
+    async sayHello(req: Req, res: Res) {
         const { name } = req.query;
-        res.json(`Hello ${name}`);
+        res.json({ hello: `${name}` });
     }
 
     @Post("/run")
