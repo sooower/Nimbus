@@ -3,8 +3,18 @@ import { globSync } from "glob";
 import path from "path";
 import { ROUTER_PATH, ROUTER_PREFIX } from "../decorators/route.decorator";
 
+function getEnvBaseDirAndExt(): { env: string; baseDir: string; ext: string } {
+    const env = process.env.NODE_ENV ?? "dev";
+    return {
+        env,
+        baseDir: env === "prod" ? "dist" : "src",
+        ext: env === "prod" ? "js" : "ts",
+    };
+}
+
 export function autoRegisterRoutes(app: Express): void {
-    const files = globSync(process.env.NODE_ENV === "prod" ? "dist/controllers/**/*.js" : "src/controllers/**/*.ts");
+    const { baseDir, ext } = getEnvBaseDirAndExt();
+    const files = globSync(`${baseDir}/controllers/**/*.${ext}`);
     files.forEach(it => {
         const obj = require(path.resolve(it));
         Object.keys(obj)
@@ -21,15 +31,9 @@ export function autoRegisterRoutes(app: Express): void {
 }
 
 function loadConfig(): any {
-    const env = process.env.NODE_ENV ?? "dev";
-    let dir: string, ext: string;
-    if (env === "prod") {
-        (dir = "dist"), (ext = "js");
-    } else {
-        (dir = "src"), (ext = "ts");
-    }
-    const defaultConfig = require(path.resolve(`${dir}/config/config.${ext}`)).default;
-    const envConfig = require(path.resolve(`${dir}/config/config.${env}.${ext}`)).default;
+    const { env, baseDir, ext } = getEnvBaseDirAndExt();
+    const defaultConfig = require(path.resolve(`${baseDir}/config/config.${ext}`)).default;
+    const envConfig = require(path.resolve(`${baseDir}/config/config.${env}.${ext}`)).default;
     return mergeObjects(envConfig, defaultConfig);
 }
 
