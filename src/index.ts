@@ -1,9 +1,8 @@
 import express from "express";
 import swaggerUi from "swagger-ui-express";
-import fs from "fs";
 import "reflect-metadata";
 
-import { autoRegisterRoutes, globalConfig } from "./utils/core";
+import { autoRegisterRoutes, config } from "./utils/core";
 import { corsMiddleware } from "./middlewares/cors.middleware";
 import bodyParser from "body-parser";
 import apiDocuments from "../../../FOMO/api.fomoremit.net/api-docs.json";
@@ -22,6 +21,6 @@ autoRegisterRoutes(app);
 app.use(corsMiddleware);
 
 // Run application
-app.listen(globalConfig.port, () => {
-    console.log(`App listening at http://localhost:${globalConfig.port}`);
+app.listen(config.port, () => {
+    console.log(`App listening at http://localhost:${config.port}`);
 });
