@@ -34,3 +34,13 @@ function loadConfig(): any {
 }
 
 export const config = loadConfig();
+
+export function cutRoutePath(str: string): string {
+    if (!str.startsWith("/")) {
+        str = "/" + str;
+    }
+    if (str.endsWith("/")) {
+        str = str.slice(0, str.length - 1);
+    }
+    return str;
+}

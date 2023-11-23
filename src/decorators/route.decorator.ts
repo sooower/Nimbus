@@ -1,18 +1,12 @@
 import { Request, Response, NextFunction, Router } from "express";
 
+import { cutRoutePath } from "../utils/core";
+
 export const ROUTER_PREFIX = "router_prefix";
 export const ROUTER_PATH = "router_path";
 
 export function Controller(prefix?: string): ClassDecorator {
-    let routePrefix = prefix == "/" || !prefix ? "" : prefix;
-
-    if (!routePrefix.startsWith("/")) {
-        routePrefix = "/" + routePrefix;
-    }
-    if (routePrefix.endsWith("/")) {
-        routePrefix = routePrefix.slice(0, routePrefix.length - 1);
-    }
-
+    const routePrefix = prefix == "/" || !prefix ? "" : cutRoutePath(prefix);
     return function (target: any) {
         Reflect.defineMetadata(ROUTER_PREFIX, routePrefix, target.prototype);
     };
@@ -24,7 +18,7 @@ function createRouteDecorator(method: string) {
         ...middlewares: ((req: Request, res: Response, next: NextFunction) => Promise<void>)[]
     ): MethodDecorator {
         return function (target: any, propertyKey: string | symbol, _: PropertyDescriptor) {
-            const routePath = path == "" || !path ? "/" : path.startsWith("/") ? path : "/" + path;
+            const routePath = path == "" || !path ? "/" : cutRoutePath(path);
             const router = Reflect.getMetadata(ROUTER_PATH, target) || Router();
             router[method](routePath, ...middlewares, target[propertyKey]);
             Reflect.defineMetadata(ROUTER_PATH, router, target);
