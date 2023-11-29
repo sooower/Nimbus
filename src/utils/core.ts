@@ -30,7 +30,7 @@ function loadConfig(): any {
     }
     const defaultConfig = require(path.resolve(`${dir}/config/config.${ext}`)).default;
     const envConfig = require(path.resolve(`${dir}/config/config.${env}.${ext}`)).default;
-    return { ...defaultConfig, ...envConfig };
+    return mergeObjects(envConfig, defaultConfig);
 }
 
 export const config = loadConfig();
@@ -43,4 +43,20 @@ export function cutRoutePath(str: string): string {
         str = str.slice(0, str.length - 1);
     }
     return str;
+}
+
+export function mergeObjects(from: any, to: any): any {
+    const merged = { ...to };
+
+    for (const key in from) {
+        if (from.hasOwnProperty(key)) {
+            if (typeof from[key] === "object" && to.hasOwnProperty(key) && typeof to[key] === "object") {
+                merged[key] = mergeObjects(from[key], to[key]);
+            } else {
+                merged[key] = from[key];
+            }
+        }
+    }
+
+    return merged;
 }

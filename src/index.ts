@@ -5,7 +5,7 @@ import "reflect-metadata";
 import { autoRegisterRoutes, config } from "./utils/core";
 import { corsMiddleware } from "./middlewares/cors.middleware";
 import bodyParser from "body-parser";
-import apiDocuments from "../../../FOMO/api.fomoremit.net/api-docs.json";
+import apiDocuments from "../../../FOMO/Codes/api.fomoremit.net/api-docs.json";
 
 const app = express();
 
