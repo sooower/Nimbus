@@ -14,7 +14,7 @@ function getEnvBaseDirAndExt(): { env: string; baseDir: string; ext: string } {
 
 export function autoRegisterRoutes(app: Express): void {
     const { baseDir, ext } = getEnvBaseDirAndExt();
-    const files = globSync(`${baseDir}/controllers/**/*.${ext}`);
+    const files = globSync(`${baseDir}/controller*/**/*.${ext}`);
     files.forEach(it => {
         const obj = require(path.resolve(it));
         Object.keys(obj)
