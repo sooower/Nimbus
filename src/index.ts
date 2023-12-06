@@ -2,12 +2,16 @@ import express from "express";
 import swaggerUi from "swagger-ui-express";
 import "reflect-metadata";
 
-import { autoRegisterRoutes, config } from "./utils/core";
+import { autoRegisterRoutes, globalConfig } from "./utils/core";
 import { corsMiddleware } from "./middlewares/cors.middleware";
 import bodyParser from "body-parser";
 import apiDocuments from "../../../FOMO/Codes/api.fomoremit.net/api-docs.json";
+import { errorMiddleware } from "./middlewares/error.middleware";
 
 const app = express();
+
+// Handle cors
+app.use(corsMiddleware);
 
 // Parse request body
 app.use(bodyParser.json());
@@ -17,10 +21,10 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(apiDocuments));
 // Auto register routes
 autoRegisterRoutes(app);
 
-// Handle Cors
-app.use(corsMiddleware);
+// Handle global error
+app.use(errorMiddleware);
 
 // Run application
-app.listen(config.port, () => {
-    console.log(`App listening at http://localhost:${config.port}`);
+app.listen(globalConfig.port, () => {
+    console.log(`App listening at http://localhost:${globalConfig.port}`);
 });
