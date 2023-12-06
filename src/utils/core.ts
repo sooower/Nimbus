@@ -20,17 +20,14 @@ export function autoRegisterRoutes(app: Express): void {
         Object.keys(obj)
             .filter(it => it.endsWith("Controller"))
             .forEach(it => {
-                const handler = obj[it].prototype;
-                if (handler) {
+                const controller = obj[it].prototype;
+                if (controller) {
                     const routerPrefix = Reflect.getMetadata(
                         ROUTER_PREFIX,
-                        handler,
+                        controller,
                     );
-                    const routerPath = Reflect.getMetadata(
-                        ROUTER_PATH,
-                        handler,
-                    );
-                    app.use(routerPrefix, routerPath);
+                    const router = Reflect.getMetadata(ROUTER_PATH, controller);
+                    app.use(routerPrefix, router);
                 }
             });
     });
