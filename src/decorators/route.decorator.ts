@@ -1,6 +1,7 @@
-import { Request, Response, NextFunction, Router } from "express";
+import { Router } from "express";
 
 import { cutRoutePath } from "../utils/core";
+import { Next, Req, Res } from "../types/core";
 
 export const ROUTER_PREFIX = "router_prefix";
 export const ROUTER_PATH = "router_path";
@@ -15,9 +16,13 @@ export function Controller(prefix?: string): ClassDecorator {
 function createRouteDecorator(method: string) {
     return function (
         path?: string,
-        ...middlewares: ((req: Request, res: Response, next: NextFunction) => Promise<void>)[]
+        ...middlewares: ((req: Req, res: Res, next: Next) => Promise<void>)[]
     ): MethodDecorator {
-        return function (target: any, propertyKey: string | symbol, _: PropertyDescriptor) {
+        return function (
+            target: any,
+            propertyKey: string | symbol,
+            _: PropertyDescriptor,
+        ) {
             const routePath = path == "" || !path ? "/" : cutRoutePath(path);
             const router = Reflect.getMetadata(ROUTER_PATH, target) || Router();
             router[method](routePath, ...middlewares, target[propertyKey]);
