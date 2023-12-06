@@ -22,8 +22,14 @@ export function autoRegisterRoutes(app: Express): void {
             .forEach(it => {
                 const handler = obj[it].prototype;
                 if (handler) {
-                    const routerPrefix = Reflect.getMetadata(ROUTER_PREFIX, handler);
-                    const routerPath = Reflect.getMetadata(ROUTER_PATH, handler);
+                    const routerPrefix = Reflect.getMetadata(
+                        ROUTER_PREFIX,
+                        handler,
+                    );
+                    const routerPath = Reflect.getMetadata(
+                        ROUTER_PATH,
+                        handler,
+                    );
                     app.use(routerPrefix, routerPath);
                 }
             });
@@ -32,12 +38,16 @@ export function autoRegisterRoutes(app: Express): void {
 
 function loadConfig(): any {
     const { env, baseDir, ext } = getEnvBaseDirAndExt();
-    const defaultConfig = require(path.resolve(`${baseDir}/config/config.${ext}`)).default;
-    const envConfig = require(path.resolve(`${baseDir}/config/config.${env}.${ext}`)).default;
+    const defaultConfig = require(
+        path.resolve(`${baseDir}/config/config.${ext}`),
+    ).default;
+    const envConfig = require(
+        path.resolve(`${baseDir}/config/config.${env}.${ext}`),
+    ).default;
     return mergeObjects(envConfig, defaultConfig);
 }
 
-export const config = loadConfig();
+export const globalConfig = loadConfig();
 
 export function cutRoutePath(str: string): string {
     if (!str.startsWith("/")) {
@@ -54,7 +64,11 @@ export function mergeObjects(from: any, to: any): any {
 
     for (const key in from) {
         if (from.hasOwnProperty(key)) {
-            if (typeof from[key] === "object" && to.hasOwnProperty(key) && typeof to[key] === "object") {
+            if (
+                typeof from[key] === "object" &&
+                to.hasOwnProperty(key) &&
+                typeof to[key] === "object"
+            ) {
                 merged[key] = mergeObjects(from[key], to[key]);
             } else {
                 merged[key] = from[key];
