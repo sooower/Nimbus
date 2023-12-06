@@ -7,7 +7,7 @@ import swaggerUi from "swagger-ui-express";
 import apiDocuments from "../../../FOMO/Codes/api.fomoremit.net/api-docs.json";
 import { corsMiddleware } from "./core/middlewares/cors.middleware";
 import { errorMiddleware } from "./core/middlewares/error.middleware";
-import { autoRegisterRoutes, globalConfig } from "./core/utils/common";
+import { autoRegisterRoutes, globalConfig } from "./core/utils";
 
 const app = express();
 

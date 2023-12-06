@@ -1,5 +1,5 @@
 import { ServiceError } from "../errors";
-import { Next, Req, Res } from "../types/common";
+import { Next, Req, Res } from "../types";
 
 export function errorMiddleware(
     err: ServiceError,

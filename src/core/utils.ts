@@ -2,7 +2,7 @@ import { Express } from "express";
 import { globSync } from "glob";
 import path from "path";
 
-import { ROUTER_PATH, ROUTER_PREFIX } from "../decorators/route.decorator";
+import { ROUTER_PATH, ROUTER_PREFIX } from "./decorators/route.decorator";
 
 function getEnvBaseDirAndExt(): { env: string; baseDir: string; ext: string } {
     const env = process.env.NODE_ENV ?? "dev";
