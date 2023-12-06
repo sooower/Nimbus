@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
-import { Controller, Get, Post } from "../decorators/route.decorator";
-import { Req, Res } from "../types/core";
+
+import { Controller, Get, Post } from "@/core/decorators/route.decorator";
+import { Req, Res } from "@/core/types/common";
 
 @Controller("/hello")
 export class HelloController {

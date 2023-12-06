@@ -1,12 +1,13 @@
-import express from "express";
-import swaggerUi from "swagger-ui-express";
 import "reflect-metadata";
 
-import { autoRegisterRoutes, globalConfig } from "./utils/core";
-import { corsMiddleware } from "./middlewares/cors.middleware";
 import bodyParser from "body-parser";
+import express from "express";
+import swaggerUi from "swagger-ui-express";
+
 import apiDocuments from "../../../FOMO/Codes/api.fomoremit.net/api-docs.json";
-import { errorMiddleware } from "./middlewares/error.middleware";
+import { corsMiddleware } from "./core/middlewares/cors.middleware";
+import { errorMiddleware } from "./core/middlewares/error.middleware";
+import { autoRegisterRoutes, globalConfig } from "./core/utils/common";
 
 const app = express();
 

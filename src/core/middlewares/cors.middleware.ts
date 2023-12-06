@@ -1,4 +1,4 @@
-import { Next, Req, Res } from "../types/core";
+import { Req, Res, Next } from "../types/common";
 
 export function corsMiddleware(req: Req, res: Res, next: Next) {
     res.header("Access-Control-Allow-Origin", "*");

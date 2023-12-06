@@ -1,7 +1,7 @@
 import { Router } from "express";
 
-import { cutRoutePath } from "../utils/core";
-import { Next, Req, Res } from "../types/core";
+import { Next, Req, Res } from "../types/common";
+import { cutRoutePath } from "../utils/common";
 
 export const ROUTER_PREFIX = "router_prefix";
 export const ROUTER_PATH = "router_path";

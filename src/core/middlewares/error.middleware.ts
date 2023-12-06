@@ -1,4 +1,4 @@
-import { Req, Res, Next } from "../types/core";
+import { Req, Res, Next } from "../types/common";
 
 export function errorMiddleware(err: any, req: Req, res: Res, next: Next) {
     console.error(err.stack);
