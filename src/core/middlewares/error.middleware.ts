@@ -7,11 +7,19 @@ export function errorMiddleware(
     res: Res,
     next: Next,
 ) {
-    console.error(err.stack);
+    if (err instanceof ServiceError) {
+        const { status, requestId, code, message, stack } = err;
+        console.error(stack); // TODO
 
-    res.status(err.status || 500).json({
-        code: err.code || "500",
-        message: err.message,
+        return res.status(status).json({
+            requestId,
+            code,
+            message,
+        });
+    }
+
+    return res.status(500).json({
+        code: "500",
+        message: "Internal Server Error",
     });
-    return;
 }

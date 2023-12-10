@@ -76,3 +76,12 @@ export function mergeObjects(from: any, to: any): any {
 
     return merged;
 }
+
+export function generateRequestId(length: number = 7): string {
+    const chars = "0123456789abcdefghijklmnopqrstuvwxyz";
+    let result = "";
+    for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+}
