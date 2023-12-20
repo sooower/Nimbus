@@ -9,6 +9,7 @@ import {
     StatusCode,
 } from "@/core/decorators/route.decorator";
 import { ServiceError } from "@/core/errors";
+import { logger } from "@/core/utils/logger";
 
 import { HelloCreateDto } from "@/models/hello/createDto";
 
@@ -20,7 +21,7 @@ export class HelloController {
         @Ctx("requestId") reqId: string,
     ) {
         // Test throw error
-        if (false) {
+        if (!false) {
             throw new ServiceError(reqId, 400, "0001", "Service Error");
         }
 
@@ -30,8 +31,8 @@ export class HelloController {
     @Post("/")
     @StatusCode(201)
     async post(@Body() createDto: HelloCreateDto, @Headers() headers: any) {
-        console.log("createDto", createDto);
-        console.log("headers", headers);
+        logger.debug("createDto", createDto);
+        logger.info("headers", headers);
         return { createDto, headers };
     }
 }
