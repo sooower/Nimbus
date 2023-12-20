@@ -8,7 +8,7 @@ export function errorMiddleware(
     res: Res,
     next: Next,
 ) {
-    logger.error(`#[${err.requestId}] `, err);
+    logger.error(`[${err.requestId}]`, err);
 
     if (err instanceof ServiceError) {
         const { status, requestId, code, message, stack } = err;
