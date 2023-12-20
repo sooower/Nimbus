@@ -1,3 +1,5 @@
+import dayjs from "dayjs";
+
 import { ServiceError } from "../errors";
 import { Next, Req, Res } from "../types";
 
@@ -7,10 +9,13 @@ export function errorMiddleware(
     res: Res,
     next: Next,
 ) {
+    console.error(
+        `#[${err.requestId}] [${dayjs().format("YYYY-MM-DD HH:mm:ssZ")}]`,
+        err,
+    );
+
     if (err instanceof ServiceError) {
         const { status, requestId, code, message, stack } = err;
-        console.error(stack); // TODO
-
         return res.status(status).json({
             requestId,
             code,

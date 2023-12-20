@@ -2,7 +2,7 @@ import { Express } from "express";
 import { globSync } from "glob";
 import path from "path";
 
-import { ROUTER_PATH, ROUTER_PREFIX } from "./decorators/route.decorator";
+import { ROUTER_PATH, ROUTER_PREFIX } from "./constants";
 
 function getEnvBaseDirAndExt(): { env: string; baseDir: string; ext: string } {
     const env = process.env.NODE_ENV ?? "dev";
@@ -77,11 +77,15 @@ export function mergeObjects(from: any, to: any): any {
     return merged;
 }
 
-export function generateRequestId(length: number = 7): string {
+export function genRequestId(length: number = 7): string {
     const chars = "0123456789abcdefghijklmnopqrstuvwxyz";
     let result = "";
     for (let i = 0; i < length; i++) {
         result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return result;
+}
+
+export function genMetadataKey(...keys: string[]) {
+    return keys.join(":");
 }
