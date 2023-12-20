@@ -1,5 +1,5 @@
 import log4js from "log4js";
-import { globalConfig } from "../utils";
+import { globalConfig } from "./config";
 
 export function appLogger(category?: string) {
     log4js.configure({

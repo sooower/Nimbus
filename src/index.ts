@@ -5,7 +5,8 @@ import express from "express";
 
 import { corsMiddleware } from "./core/middlewares/cors.middleware";
 import { errorMiddleware } from "./core/middlewares/error.middleware";
-import { autoRegisterRoutes, globalConfig } from "./core/utils";
+import { globalConfig } from "./core/utils/config";
+import { autoRegisterRoutes } from "./core/utils/route";
 
 const app = express();
 

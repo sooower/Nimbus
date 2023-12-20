@@ -9,7 +9,6 @@ import {
     Req,
     Res,
 } from "../types";
-import { cutRoutePath, genMetadataKey, genRequestId } from "../utils";
 import {
     ROUTER_PREFIX,
     ROUTER_QUERY,
@@ -20,6 +19,8 @@ import {
     ROUTER_CTX,
     ROUTER_PATH,
 } from "../constants";
+import { genMetadataKey, genRequestId } from "../utils/common";
+import { cutRoutePath } from "../utils/route";
 
 export function Controller(prefix?: string): ClassDecorator {
     const routePrefix = prefix == "/" || !prefix ? "" : cutRoutePath(prefix);
