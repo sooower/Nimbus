@@ -7,9 +7,9 @@ import {
     Post,
     Query,
     StatusCode,
-} from "@/core/decorators/route.decorator";
+} from "@/core/decorators/routeDecorator";
 import { ServiceError } from "@/core/errors";
-import { logger } from "@/core/utils/logger";
+import { logger } from "@/core/components/logger";
 
 import { HelloCreateDto } from "@/models/hello/createDto";
 

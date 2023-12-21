@@ -4,7 +4,7 @@ import { globalConfig } from "./config";
 export function appLogger(category?: string) {
     log4js.configure({
         appenders: {
-            app: {
+            file: {
                 type: "dateFile",
                 filename: "logs/app.log",
                 encoding: "utf-8",
@@ -15,13 +15,12 @@ export function appLogger(category?: string) {
                 pattern: "yyyy-MM-dd",
                 keepFileExt: true,
                 alwaysIncludePattern: true,
-                daysToKeep: 366,
             },
             console: { type: "console" },
         },
         categories: {
             default: {
-                appenders: ["app", "console"],
+                appenders: ["file", "console"],
                 level: "info",
             },
         },

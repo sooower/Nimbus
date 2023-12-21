@@ -1,6 +1,6 @@
 import { ServiceError } from "../errors";
 import { Next, Req, Res } from "../types";
-import { logger } from "../utils/logger";
+import { logger } from "../components/logger";
 
 export function errorMiddleware(
     err: ServiceError,
