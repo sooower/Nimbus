@@ -4,6 +4,7 @@ import {
     Context,
     CtxMetadataValue,
     CtxSource,
+    MiddlewareFunc,
     Next,
     ParamMetadataValue,
     Req,
@@ -69,10 +70,7 @@ export function Ctx(source?: CtxSource) {
 function createRouteMethodDecorator(
     method: "get" | "post" | "put" | "patch" | "delete",
 ) {
-    return function (
-        path?: string,
-        ...middlewares: ((req: Req, res: Res, next: Next) => Promise<void>)[]
-    ) {
+    return function (path?: string, ...middlewares: MiddlewareFunc[]) {
         return function (
             target: any,
             propertyKey: string,
