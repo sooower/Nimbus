@@ -4,12 +4,12 @@ import {
     Context,
     CtxMetadataValue,
     CtxSource,
+    MiddlewareFunc,
     Next,
     ParamMetadataValue,
     Req,
     Res,
 } from "../types";
-import { cutRoutePath, genMetadataKey, genRequestId } from "../utils";
 import {
     ROUTER_PREFIX,
     ROUTER_QUERY,
@@ -20,6 +20,8 @@ import {
     ROUTER_CTX,
     ROUTER_PATH,
 } from "../constants";
+import { genMetadataKey, genRequestId } from "../utils/common";
+import { cutRoutePath } from "../utils/route";
 
 export function Controller(prefix?: string): ClassDecorator {
     const routePrefix = prefix == "/" || !prefix ? "" : cutRoutePath(prefix);
@@ -68,10 +70,7 @@ export function Ctx(source?: CtxSource) {
 function createRouteMethodDecorator(
     method: "get" | "post" | "put" | "patch" | "delete",
 ) {
-    return function (
-        path?: string,
-        ...middlewares: ((req: Req, res: Res, next: Next) => Promise<void>)[]
-    ) {
+    return function (path?: string, ...middlewares: MiddlewareFunc[]) {
         return function (
             target: any,
             propertyKey: string,

@@ -1,7 +1,6 @@
-import dayjs from "dayjs";
-
 import { ServiceError } from "../errors";
 import { Next, Req, Res } from "../types";
+import { logger } from "../components/logger";
 
 export function errorMiddleware(
     err: ServiceError,
@@ -9,10 +8,7 @@ export function errorMiddleware(
     res: Res,
     next: Next,
 ) {
-    console.error(
-        `#[${err.requestId}] [${dayjs().format("YYYY-MM-DD HH:mm:ssZ")}]`,
-        err,
-    );
+    logger.error(`[${err.requestId}]`, err);
 
     if (err instanceof ServiceError) {
         const { status, requestId, code, message, stack } = err;

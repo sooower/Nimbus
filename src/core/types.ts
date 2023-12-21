@@ -37,3 +37,5 @@ export type CtxMetadataValue = {
     propertyKey: string;
     paramIdx: number;
 };
+
+export type MiddlewareFunc = (req: Req, res: Res, next: Next) => Promise<void>;

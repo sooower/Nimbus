@@ -3,9 +3,11 @@ import "reflect-metadata";
 import bodyParser from "body-parser";
 import express from "express";
 
-import { corsMiddleware } from "./core/middlewares/cors.middleware";
-import { errorMiddleware } from "./core/middlewares/error.middleware";
-import { autoRegisterRoutes, globalConfig } from "./core/utils";
+import { corsMiddleware } from "./core/middlewares/corsMiddleware";
+import { errorMiddleware } from "./core/middlewares/errorMiddleware";
+import { globalConfig } from "./core/components/config";
+import { autoRegisterRoutes } from "./core/utils/route";
+import { logger } from "./core/components/logger";
 
 const app = express();
 
@@ -23,5 +25,5 @@ app.use(errorMiddleware);
 
 // Run application
 app.listen(globalConfig.port, () => {
-    console.log(`App listening at http://localhost:${globalConfig.port}`);
+    logger.info(`App listening at http://localhost:${globalConfig.port}`);
 });

@@ -25,6 +25,9 @@
         "dayjs": "^1.11.10",
         "express": "^4.18.2",
         "glob": "^10.3.10",
-        "reflect-metadata": "^0.1.13"
+        "log4js": "^6.9.1",
+        "pg": "^8.11.3",
+        "reflect-metadata": "^0.1.13",
+        "typeorm": "^0.3.17"
     }
 }
