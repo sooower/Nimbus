@@ -2,9 +2,9 @@
     "name": "typescript-playground",
     "version": "1.0.0",
     "description": "",
-    "main": "index.js",
+    "main": "dist/main.js",
     "scripts": {
-        "dev": "ts-node-dev -r tsconfig-paths/register src/index.ts",
+        "dev": "ts-node-dev -r tsconfig-paths/register src/main.ts",
         "prettier": "prettier --config .prettierrc --write ./src/**/**/*.ts"
     },
     "keywords": [],

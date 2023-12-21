@@ -20,8 +20,7 @@ import {
     ROUTER_CTX,
     ROUTER_PATH,
 } from "../constants";
-import { genMetadataKey, genRequestId } from "../utils/common";
-import { cutRoutePath } from "../utils/route";
+import { cutRoutePath, genMetadataKey, genRequestId } from "../utils/common";
 
 export function Controller(prefix?: string): ClassDecorator {
     const routePrefix = prefix == "/" || !prefix ? "" : cutRoutePath(prefix);
