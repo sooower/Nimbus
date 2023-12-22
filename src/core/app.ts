@@ -12,6 +12,8 @@ import { errorMiddleware } from "./middlewares/errorMiddleware";
 import { ROUTER_PREFIX, ROUTER_PATH } from "./constants";
 import { getEnvBaseDirAndExt } from "./utils/common";
 
+import { ds } from "@/core/components/dataSource";
+
 const app = express();
 
 /**
@@ -46,7 +48,17 @@ async function run() {
 /**
  * Lifecycle function, do something before app started.
  */
-async function onReady() {}
+async function onReady() {
+    // to initialize the initial connection with the database, register all entities
+    // and "synchronize" database schema, call "initialize()" method of a newly created database
+    // once in your application bootstrap
+    try {
+        await ds.initialize();
+        logger.info("Data Source initialized");
+    } catch (err) {
+        throw new Error(`Failed when data Source initializing. ${err}`);
+    }
+}
 
 /**
  * Lifecycle function, do something before app shutdown.
