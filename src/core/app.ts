@@ -21,6 +21,13 @@ const app = express();
  * Running app(now Express).
  */
 async function run() {
+    // Register lifecycle events
+    await onReady();
+    process.on("SIGINT", async () => {
+        await onClose();
+        process.exit(0);
+    });
+
     // Handle cors
     app.use(corsMiddleware);
 
@@ -36,13 +43,6 @@ async function run() {
     // Run application
     app.listen(globalConfig.port, () => {
         logger.info(`Server started on ${globalConfig.port} (*￣︶￣).`);
-    });
-
-    // Register lifecycle events
-    await onReady();
-    process.on("SIGINT", async () => {
-        await onClose();
-        process.exit(0);
     });
 }
 
