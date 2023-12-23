@@ -1,6 +1,6 @@
+import { logger } from "../components/logger";
 import { ServiceError } from "../errors";
 import { Next, Req, Res } from "../types";
-import { logger } from "../components/logger";
 
 export function errorMiddleware(
     err: ServiceError,
@@ -11,16 +11,13 @@ export function errorMiddleware(
     logger.error(`[${err.requestId}]`, err);
 
     if (err instanceof ServiceError) {
-        const { status, requestId, code, message, stack } = err;
+        const { status, requestId, message } = err;
+
         return res.status(status).json({
             requestId,
-            code,
             message,
         });
     }
 
-    return res.status(500).json({
-        code: "500",
-        message: "Internal Server Error",
-    });
+    return res.status(500).json("Internal Server Error");
 }

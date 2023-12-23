@@ -4,14 +4,24 @@ import { Base } from "./base";
 @Entity({ schema: "business" })
 export class User extends Base {
     @PrimaryGeneratedColumn()
-    id!: number;
+    id!: string;
 
     @Column()
-    name!: string;
+    username!: string;
 
     @Column()
+    password!: string;
+
+    @Column()
+    salt!: string;
+
+    @Column({
+        nullable: true,
+    })
     age!: number;
 
-    @Column()
+    @Column({
+        nullable: true,
+    })
     gender!: boolean;
 }

@@ -1,53 +1,108 @@
+import crypto from "crypto";
+
+import { CacheClient } from "@/core/components/cacheClient";
+import { ds } from "@/core/components/dataSource";
+import { Jwt } from "@/core/components/jwt";
 import {
     Body,
     Controller,
-    Delete,
-    Get,
     Param,
     Post,
     Put,
 } from "@/core/decorators/routeDecorator";
-import { ds } from "@/core/components/dataSource";
-import { User } from "@/entities/user";
-import { CreateUserDto } from "@/models/user/createUserDto";
+import { ServiceError } from "@/core/errors";
 import {
-    CacheEvict,
-    CachePut,
-    Cacheable,
-} from "@/core/decorators/cacheDecorator";
-import { logger } from "@/core/components/logger";
+    comparePassword,
+    encryptPassword,
+    generateCacheKey,
+} from "@/core/utils";
+import { User } from "@/entities/user";
+import { UserLoginDto, UserRegisterDto } from "@/models/user";
 
 @Controller("/users")
 export class UserController {
-    @Post("/")
-    async create(@Body() createUserDto: CreateUserDto) {
+    @Post("/register")
+    async register(@Body() userRegisterDto: UserRegisterDto) {
         const userRepository = ds.getRepository(User);
-        const res = await userRepository.save(createUserDto);
 
-        return res;
+        if (userRegisterDto.password !== userRegisterDto.confirmedPassword) {
+            throw new ServiceError(
+                "`password` is not matched with `confirmedPassword`.",
+            );
+        }
+
+        const userRecord = await userRepository.find({
+            select: ["username"],
+            where: {
+                username: userRegisterDto.username,
+            },
+        });
+        if (userRecord.length > 0) {
+            throw new ServiceError("`username` has exists.");
+        }
+
+        const salt = crypto.randomBytes(16).toString("hex");
+
+        const user = new User();
+        user.username = userRegisterDto.username;
+        user.password = encryptPassword(userRegisterDto.password, salt);
+        user.salt = salt;
+
+        const {
+            password,
+            salt: resSalt,
+            ...o
+        } = await userRepository.save(user);
+
+        return o;
     }
 
-    @Get("/:id")
-    @Cacheable({ scope: "Users", key: ":userId", ttl: 120 })
-    async get(@Param("id") userId: string) {
-        logger.info("Running in `get` method");
+    @Put("/login")
+    async login(@Body() userLoginDto: UserLoginDto) {
+        const userRepository = ds.getRepository(User);
 
-        return { id: userId, name: "sower1" };
+        const userRecord = await userRepository.findOne({
+            select: ["id", "salt", "password"],
+            where: {
+                username: userLoginDto.username,
+            },
+        });
+
+        if (!userRecord) {
+            throw new ServiceError("`username` not found.");
+        }
+
+        // Compare password
+        if (
+            !comparePassword(
+                userLoginDto.password,
+                userRecord.salt,
+                userRecord.password,
+            )
+        ) {
+            throw new ServiceError("Password is not matched.");
+        }
+
+        // Jwt signature
+        const token = Jwt.sign({ useId: userRecord.id });
+        await CacheClient.setWithTTL(
+            generateCacheKey("user@token", userRecord.id),
+            token,
+        );
+
+        return token;
     }
 
-    @Put("/:id")
-    @CachePut({ scope: "Users", key: ":userId", ttl: 120 })
-    async update(@Param("id") userId: string) {
-        logger.info("Running in `update` method");
+    @Put("/logout/:id")
+    async logout(@Param("id") id: string) {
+        const res = await CacheClient.remove(
+            generateCacheKey("user@token", id),
+        );
 
-        return { id: userId, name: "sower2" };
-    }
+        if (!res) {
+            throw new ServiceError("Cannot logout again.");
+        }
 
-    @Delete("/:id")
-    @CacheEvict({ scope: "Users", key: ":userId" })
-    async remove(@Param("id") userId: string) {
-        logger.info("Running in `remove` method");
-
-        return true;
+        return;
     }
 }

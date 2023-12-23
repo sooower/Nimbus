@@ -1,8 +1,8 @@
 import stringify from "safe-stable-stringify";
 
-import { cacheClient, setWithTTL } from "../components/cacheClient";
+import { CacheClient } from "../components/cacheClient";
 import { logger } from "../components/logger";
-import { getParamNamesWithIndex } from "../utils";
+import { generateCacheKey, getParamNamesWithIndex } from "../utils";
 
 type CacheSetOptions = {
     scope: string;
@@ -32,21 +32,21 @@ export function Cacheable(options: CacheSetOptions) {
 
             const cacheKey = generateCacheKey(options.scope, key);
 
-            if (await cacheClient.exists(cacheKey)) {
+            if (await CacheClient.has(cacheKey)) {
                 logger.debug("Fetching data from cache.");
-                const res = await cacheClient.get(cacheKey);
 
-                return res ? JSON.parse(res) : null;
+                return await CacheClient.get(cacheKey);
             }
 
             const res = await originalMethod.apply(this, args);
 
             // Cache data
             if (res) {
-                const cacheVal = stringify(res)!;
-                await setWithTTL(cacheKey, cacheVal, options.ttl);
+                options.ttl > 0
+                    ? await CacheClient.setWithTTL(cacheKey, res, options.ttl)
+                    : await CacheClient.set(cacheKey, res);
                 logger.debug(
-                    `Cached data, Key <${cacheKey}> set with value <${cacheVal}> and TTL <${options.ttl}> second.`,
+                    `Cached data, Key <${cacheKey}> set with value <${res}> and TTL <${options.ttl}> second.`,
                 );
             }
 
@@ -76,11 +76,12 @@ export function CachePut(options: CacheSetOptions) {
                     args,
                 );
                 const cacheKey = generateCacheKey(options.scope, key);
-                const cacheVal = stringify(res)!;
 
-                await setWithTTL(cacheKey, cacheVal, options.ttl);
+                options.ttl > 0
+                    ? await CacheClient.setWithTTL(cacheKey, res, options.ttl)
+                    : await CacheClient.set(cacheKey, res);
                 logger.debug(
-                    `Cached data, Key <${cacheKey}> set with value <${cacheVal}> and TTL <${options.ttl}> second.`,
+                    `Cached data, Key <${cacheKey}> set with value <${res}> and TTL <${options.ttl}> second.`,
                 );
             }
 
@@ -109,8 +110,8 @@ export function CacheEvict(options: CacheRemoveOptions) {
                 args,
             );
             const cacheKey = generateCacheKey(options.scope, key);
-            if (await cacheClient.exists(cacheKey)) {
-                await cacheClient.del(cacheKey);
+            if (await CacheClient.has(cacheKey)) {
+                await CacheClient.remove(cacheKey);
                 logger.debug(`Removed cache, Key <${cacheKey}>.`);
             }
 
@@ -147,8 +148,4 @@ function parseKeyWithMethodsParams(
         }
     }
     return res;
-}
-
-function generateCacheKey(...args: string[]) {
-    return args.join("@").replace(/:/g, "@");
 }

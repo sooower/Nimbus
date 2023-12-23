@@ -1,3 +1,5 @@
+import crypto from "crypto";
+
 export function getEnvBaseDirAndExt(): {
     env: string;
     baseDir: string;
@@ -47,4 +49,26 @@ export function getParamNamesWithIndex(func: Function): Map<string, number> {
     });
 
     return paramMap;
+}
+
+export function encryptPassword(password: string, salt: string) {
+    return crypto
+        .pbkdf2Sync(password, salt, 1000, 64, "sha512")
+        .toString("hex");
+}
+
+export function comparePassword(
+    password: string,
+    salt: string,
+    encryptedPassword: string,
+) {
+    const passwordHash = crypto
+        .pbkdf2Sync(password, salt, 1000, 64, "sha512")
+        .toString("hex");
+
+    return encryptedPassword === passwordHash;
+}
+
+export function generateCacheKey(...args: string[]) {
+    return args.join("@").replace(/:/g, "@");
 }

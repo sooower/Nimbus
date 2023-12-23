@@ -1,21 +1,22 @@
 export class ServiceError extends Error {
-    readonly requestId: string;
-    readonly status: number;
-    readonly code: number;
-    readonly message: string;
+    status: number;
+    requestId?: string;
 
     constructor(
-        requestId: string,
-        status: number,
-        code: number,
         message: string,
+        status: number = 400,
         stack?: string,
+        requestId?: string,
     ) {
-        super();
-        this.requestId = requestId;
+        super(message);
+
         this.status = status;
-        this.code = code;
-        this.message = message;
-        this.stack = stack;
+
+        if (stack) {
+            this.stack = stack;
+        }
+        if (requestId) {
+            this.requestId = requestId;
+        }
     }
 }

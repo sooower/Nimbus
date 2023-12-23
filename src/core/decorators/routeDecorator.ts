@@ -1,17 +1,17 @@
 import { Router } from "express";
 
-import { Context, MiddlewareFunc, Next, Req, Res } from "../types";
 import {
-    KEY_ROUTER_PREFIX,
-    KEY_ROUTER_QUERY,
-    KEY_ROUTER_PARAMS,
-    KEY_ROUTER_HEADERS,
     KEY_ROUTER_BODY,
-    KEY_ROUTER_STATUS_CODE,
     KEY_ROUTER_CTX,
     KEY_ROUTER_HANDLER,
+    KEY_ROUTER_HEADERS,
+    KEY_ROUTER_PARAMS,
+    KEY_ROUTER_PREFIX,
+    KEY_ROUTER_QUERY,
+    KEY_ROUTER_STATUS_CODE,
 } from "../constants";
 import { ServiceError } from "../errors";
+import { Context, MiddlewareFunc, Next, Req, Res } from "../types";
 
 type ParamMetadataValue = {
     paramIdx: number;
@@ -163,11 +163,10 @@ function createRouteMethodDecorator(
                             );
                         } catch (err: any) {
                             throw new ServiceError(
-                                requestId,
-                                400,
-                                10001,
                                 err.message,
+                                err.status ?? 400,
                                 err.stack,
+                                requestId,
                             );
                         }
 
