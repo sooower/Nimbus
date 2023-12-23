@@ -31,33 +31,6 @@ export function mergeObjects(from: any, to: any): any {
     return merged;
 }
 
-export function genRequestId(length: number = 7): string {
-    const chars = "0123456789abcdefghijklmnopqrstuvwxyz";
-    let result = "";
-    for (let i = 0; i < length; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-}
-
-export function generateMetadataKey(...keys: string[]) {
-    return keys.join(":");
-}
-
-export function cutRoutePath(str: string): string {
-    if (!str.startsWith("/")) {
-        str = "/" + str;
-    }
-    if (str.endsWith("/")) {
-        str = str.slice(0, str.length - 1);
-    }
-    return str;
-}
-
-export function generateCacheKey(...args: string[]) {
-    return args.join("@").replace(/:/g, "@");
-}
-
 export function getParamNamesWithIndex(func: Function): Map<string, number> {
     const funcString: string = func.toString();
     const argsStartIndex: number = funcString.indexOf("(") + 1;

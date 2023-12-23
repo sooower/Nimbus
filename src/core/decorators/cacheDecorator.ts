@@ -2,8 +2,18 @@ import stringify from "safe-stable-stringify";
 
 import { cacheClient, setWithTTL } from "../components/cacheClient";
 import { logger } from "../components/logger";
-import { CacheRemoveOptions, CacheSetOptions } from "../types";
-import { generateCacheKey, getParamNamesWithIndex } from "../utils";
+import { getParamNamesWithIndex } from "../utils";
+
+type CacheSetOptions = {
+    scope: string;
+    key: string;
+    ttl: number;
+};
+
+type CacheRemoveOptions = {
+    scope: string;
+    key: string;
+};
 
 export function Cacheable(options: CacheSetOptions) {
     return function (
@@ -137,4 +147,8 @@ function parseKeyWithMethodsParams(
         }
     }
     return res;
+}
+
+function generateCacheKey(...args: string[]) {
+    return args.join("@").replace(/:/g, "@");
 }

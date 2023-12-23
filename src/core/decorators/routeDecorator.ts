@@ -1,15 +1,6 @@
 import { Router } from "express";
 
-import {
-    Context,
-    CtxMetadataValue,
-    CtxSource,
-    MiddlewareFunc,
-    Next,
-    ParamMetadataValue,
-    Req,
-    Res,
-} from "../types";
+import { Context, MiddlewareFunc, Next, Req, Res } from "../types";
 import {
     KEY_ROUTER_PREFIX,
     KEY_ROUTER_QUERY,
@@ -20,7 +11,26 @@ import {
     KEY_ROUTER_CTX,
     KEY_ROUTER_HANDLER,
 } from "../constants";
-import { cutRoutePath, generateMetadataKey, genRequestId } from "../utils";
+
+type ParamMetadataValue = {
+    paramIdx: number;
+    paramName?: string;
+};
+
+type CtxSource =
+    | "req"
+    | "res"
+    | "requestId"
+    | "query"
+    | "params"
+    | "headers"
+    | "body";
+
+type CtxMetadataValue = {
+    source?: CtxSource;
+    propertyKey: string;
+    paramIdx: number;
+};
 
 export function Controller(prefix?: string): ClassDecorator {
     const routePrefix = prefix == "/" || !prefix ? "" : cutRoutePath(prefix);
@@ -196,4 +206,27 @@ function createRouteParamsDecorator(paramType: string) {
             }
         };
     };
+}
+
+function cutRoutePath(str: string): string {
+    if (!str.startsWith("/")) {
+        str = "/" + str;
+    }
+    if (str.endsWith("/")) {
+        str = str.slice(0, str.length - 1);
+    }
+    return str;
+}
+
+function generateMetadataKey(...keys: string[]) {
+    return keys.join(":");
+}
+
+function genRequestId(length: number = 7): string {
+    const chars = "0123456789abcdefghijklmnopqrstuvwxyz";
+    let result = "";
+    for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
 }
