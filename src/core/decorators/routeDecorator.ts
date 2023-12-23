@@ -11,6 +11,7 @@ import {
     KEY_ROUTER_CTX,
     KEY_ROUTER_HANDLER,
 } from "../constants";
+import { ServiceError } from "../errors";
 
 type ParamMetadataValue = {
     paramIdx: number;
@@ -127,6 +128,8 @@ function createRouteMethodDecorator(
                             });
                         }
 
+                        const requestId = genRequestId();
+
                         // Assign context
                         const ctxMetadataValue: CtxMetadataValue =
                             Reflect.getMetadata(
@@ -144,7 +147,7 @@ function createRouteMethodDecorator(
                                 params: req.params,
                                 headers: req.headers,
                                 body: req.body,
-                                requestId: genRequestId(),
+                                requestId,
                             };
                             methodArgs[ctxMetadataValue.paramIdx] =
                                 ctxMetadataValue.source
@@ -153,9 +156,20 @@ function createRouteMethodDecorator(
                         }
 
                         // Execute handler method
-                        const result = await propertyDescriptor.value(
-                            ...methodArgs,
-                        );
+                        let result: any;
+                        try {
+                            result = await propertyDescriptor.value(
+                                ...methodArgs,
+                            );
+                        } catch (err: any) {
+                            throw new ServiceError(
+                                requestId,
+                                400,
+                                10001,
+                                err.message,
+                                err.stack,
+                            );
+                        }
 
                         // Assign status code
                         const status = Reflect.getMetadata(
@@ -170,8 +184,8 @@ function createRouteMethodDecorator(
                         }
 
                         return res.send(result);
-                    } catch (e) {
-                        next(e);
+                    } catch (err) {
+                        next(err);
                     }
                 },
             );
