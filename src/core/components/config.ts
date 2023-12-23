@@ -1,6 +1,6 @@
 import path from "path";
 
-import { getEnvBaseDirAndExt, mergeObjects } from "../utils/common";
+import { getEnvBaseDirAndExt, mergeObjects } from "../utils";
 
 function loadConfig(): any {
     const { env, baseDir, ext } = getEnvBaseDirAndExt();
@@ -10,6 +10,7 @@ function loadConfig(): any {
     const envConfig = require(
         path.resolve(`${baseDir}/config/config.${env}.${ext}`),
     ).default;
+
     return mergeObjects(envConfig, defaultConfig);
 }
 

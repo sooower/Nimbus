@@ -40,7 +40,7 @@ export function genRequestId(length: number = 7): string {
     return result;
 }
 
-export function genMetadataKey(...keys: string[]) {
+export function generateMetadataKey(...keys: string[]) {
     return keys.join(":");
 }
 
@@ -52,4 +52,26 @@ export function cutRoutePath(str: string): string {
         str = str.slice(0, str.length - 1);
     }
     return str;
+}
+
+export function generateCacheKey(...args: string[]) {
+    return args.join("@").replace(/:/g, "@");
+}
+
+export function getParamNamesWithIndex(func: Function): Map<string, number> {
+    const funcString: string = func.toString();
+    const argsStartIndex: number = funcString.indexOf("(") + 1;
+    const argsEndIndex: number = funcString.indexOf(")");
+    const argsString: string = funcString.substring(
+        argsStartIndex,
+        argsEndIndex,
+    );
+    const argNames: string[] = argsString.split(",").map(arg => arg.trim());
+    const paramMap: Map<string, number> = new Map();
+
+    argNames.forEach((arg, index) => {
+        paramMap.set(arg, index);
+    });
+
+    return paramMap;
 }

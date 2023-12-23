@@ -39,3 +39,14 @@ export type CtxMetadataValue = {
 };
 
 export type MiddlewareFunc = (req: Req, res: Res, next: Next) => Promise<void>;
+
+export type CacheSetOptions = {
+    scope: string;
+    key: string;
+    ttl: number;
+};
+
+export type CacheRemoveOptions = {
+    scope: string;
+    key: string;
+};

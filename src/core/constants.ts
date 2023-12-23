@@ -1,8 +1,8 @@
-export const ROUTER_PREFIX = "router:prefix";
-export const ROUTER_PATH = "router:path";
-export const ROUTER_STATUS_CODE = "router:statusCode";
-export const ROUTER_QUERY = "router:query";
-export const ROUTER_PARAMS = "router:params";
-export const ROUTER_HEADERS = "router:headers";
-export const ROUTER_BODY = "router:body";
-export const ROUTER_CTX = "router:context";
+export const KEY_ROUTER_PREFIX = "router:prefix";
+export const KEY_ROUTER_HANDLER = "router:handler";
+export const KEY_ROUTER_STATUS_CODE = "router:statusCode";
+export const KEY_ROUTER_QUERY = "router:query";
+export const KEY_ROUTER_PARAMS = "router:params";
+export const KEY_ROUTER_HEADERS = "router:headers";
+export const KEY_ROUTER_BODY = "router:body";
+export const KEY_ROUTER_CTX = "router:context";

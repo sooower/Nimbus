@@ -9,8 +9,9 @@ import { globalConfig } from "./components/config";
 import { logger } from "./components/logger";
 import { corsMiddleware } from "./middlewares/corsMiddleware";
 import { errorMiddleware } from "./middlewares/errorMiddleware";
-import { ROUTER_PREFIX, ROUTER_PATH } from "./constants";
-import { getEnvBaseDirAndExt } from "./utils/common";
+import { KEY_ROUTER_PREFIX, KEY_ROUTER_HANDLER } from "./constants";
+import { cacheClient } from "./components/cacheClient";
+import { getEnvBaseDirAndExt } from "./utils";
 
 import { ds } from "@/core/components/dataSource";
 
@@ -20,13 +21,6 @@ const app = express();
  * Running app(now Express).
  */
 async function run() {
-    await onReady();
-
-    process.on("SIGINT", async () => {
-        await onClose();
-        process.exit(0);
-    });
-
     // Handle cors
     app.use(corsMiddleware);
 
@@ -41,7 +35,14 @@ async function run() {
 
     // Run application
     app.listen(globalConfig.port, () => {
-        logger.info(`Server started on ${globalConfig.port} (*￣︶￣)`);
+        logger.info(`Server started on ${globalConfig.port} (*￣︶￣).`);
+    });
+
+    // Register lifecycle events
+    await onReady();
+    process.on("SIGINT", async () => {
+        await onClose();
+        process.exit(0);
     });
 }
 
@@ -54,16 +55,19 @@ async function onReady() {
     // once in your application bootstrap
     try {
         await ds.initialize();
-        logger.info("Data Source initialized");
+        logger.info("Data Source initialized.");
     } catch (err) {
-        throw new Error(`Failed when data Source initializing. ${err}`);
+        throw new Error(`Failed when data Source initializing. ${err}.`);
     }
 }
 
 /**
  * Lifecycle function, do something before app shutdown.
  */
-async function onClose() {}
+async function onClose() {
+    await cacheClient.quit();
+    logger.info(" Cache client closed.");
+}
 
 /**
  * Scan files and register routes into app(now Express).
@@ -80,10 +84,13 @@ function autoRegisterRoutes(app: Express): void {
                 const controller = obj[it].prototype;
                 if (controller) {
                     const routerPrefix = Reflect.getMetadata(
-                        ROUTER_PREFIX,
+                        KEY_ROUTER_PREFIX,
                         controller,
                     );
-                    const router = Reflect.getMetadata(ROUTER_PATH, controller);
+                    const router = Reflect.getMetadata(
+                        KEY_ROUTER_HANDLER,
+                        controller,
+                    );
                     app.use(routerPrefix, router);
                 }
             });
