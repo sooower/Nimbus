@@ -1,19 +1,19 @@
 import "reflect-metadata";
 
-import { globSync } from "glob";
 import bodyParser from "body-parser";
 import express, { Express } from "express";
+import { globSync } from "glob";
 import path from "path";
 
+import { ds } from "@/core/components/dataSource";
+
+import { cacheClient } from "./components/cacheClient";
 import { globalConfig } from "./components/config";
 import { logger } from "./components/logger";
+import { KEY_ROUTER_HANDLER, KEY_ROUTER_PREFIX } from "./constants";
 import { corsMiddleware } from "./middlewares/corsMiddleware";
 import { errorMiddleware } from "./middlewares/errorMiddleware";
-import { KEY_ROUTER_PREFIX, KEY_ROUTER_HANDLER } from "./constants";
-import { cacheClient } from "./components/cacheClient";
 import { getEnvBaseDirAndExt } from "./utils";
-
-import { ds } from "@/core/components/dataSource";
 
 const app = express();
 
@@ -50,14 +50,16 @@ async function run() {
  * Lifecycle function, do something before app started.
  */
 async function onReady() {
-    // to initialize the initial connection with the database, register all entities
-    // and "synchronize" database schema, call "initialize()" method of a newly created database
-    // once in your application bootstrap
     try {
+        // to initialize the initial connection with the database, register all entities
+        // and "synchronize" database schema, call "initialize()" method of a newly created database
+        // once in your application bootstrap
         await ds.initialize();
         logger.info("Data Source initialized.");
     } catch (err) {
-        throw new Error(`Failed when data Source initializing. ${err}.`);
+        throw new Error(
+            `Failed when executing lifecycle event "onReady". ${err}.`,
+        );
     }
 }
 
@@ -65,8 +67,17 @@ async function onReady() {
  * Lifecycle function, do something before app shutdown.
  */
 async function onClose() {
-    await cacheClient.quit();
-    logger.info(" Cache client closed.");
+    try {
+        await ds.destroy();
+        logger.info("Data Source destroyed.");
+
+        await cacheClient.quit();
+        logger.info("Cache client closed.");
+    } catch (err) {
+        throw new Error(
+            `Failed when executing lifecycle event "onClose". ${err}.`,
+        );
+    }
 }
 
 /**
