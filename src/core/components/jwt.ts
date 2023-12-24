@@ -1,6 +1,13 @@
 import jwt, { Secret, SignOptions } from "jsonwebtoken";
 
+import { mergeObjects } from "@/core/utils";
+
 import { globalConfig } from "./config";
+
+type JwtConfig = {
+    secret: Secret;
+    options: SignOptions;
+};
 
 function sign(payload: string | object) {
     const { secret, options } = getJwtConfig();
@@ -8,14 +15,12 @@ function sign(payload: string | object) {
 }
 
 function getJwtConfig() {
-    const jwtConfig: { secret: Secret; options: SignOptions } =
-        globalConfig.jwt ?? {
-            secret: "Test_Jwt_Sign_Secret",
-            options: {
-                expiresIn: "30d",
-            },
-        };
-    return jwtConfig;
+    return mergeObjects<JwtConfig>(globalConfig.jwt, {
+        secret: "Test_Jwt_Sign_Secret",
+        options: {
+            expiresIn: "30d",
+        },
+    });
 }
 
 export const Jwt = { sign };

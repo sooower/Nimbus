@@ -13,7 +13,12 @@ export function getEnvBaseDirAndExt(): {
     };
 }
 
-export function mergeObjects(from: any, to: any): any {
+/**
+ * Merge objects, the properties of object `to` will be covered by object `from`.
+ * @param from
+ * @param to
+ */
+export function mergeObjects<T>(from: any, to: any): T {
     const merged = { ...to };
 
     for (const key in from) {
