@@ -58,9 +58,10 @@ export const Body = createRouteParamsDecorator(KEY_ROUTER_BODY);
 export function StatusCode(code: number) {
     return function (target: any, propertyKey: string, _: PropertyDescriptor) {
         Reflect.defineMetadata(
-            generateMetadataKey(KEY_ROUTER_STATUS_CODE, propertyKey),
+            KEY_ROUTER_STATUS_CODE,
             code,
             target,
+            propertyKey,
         );
     };
 }
@@ -74,9 +75,10 @@ export function Ctx(source?: CtxSource) {
             paramIdx,
         };
         Reflect.defineMetadata(
-            generateMetadataKey(KEY_ROUTER_CTX, propertyKey),
+            KEY_ROUTER_CTX,
             ctxMetadataValue,
             target,
+            propertyKey,
         );
     };
 }
@@ -109,12 +111,12 @@ function createRouteMethodDecorator(
                         // Assign request parameters, include: "query", "params", "headers" and "body"
                         const methodArgs: any[] = [];
                         for (const [routeKey, routerValue] of map) {
-                            const metadataKey = generateMetadataKey(
-                                routeKey,
-                                propertyKey,
-                            );
                             const metadataValue: ParamMetadataValue[] =
-                                Reflect.getMetadata(metadataKey, target);
+                                Reflect.getMetadata(
+                                    routeKey,
+                                    target,
+                                    propertyKey,
+                                );
                             (metadataValue ?? []).forEach(it => {
                                 if (it.paramName) {
                                     methodArgs[it.paramIdx] = (req as any)[
@@ -133,11 +135,9 @@ function createRouteMethodDecorator(
                         // Assign context
                         const ctxMetadataValue: CtxMetadataValue =
                             Reflect.getMetadata(
-                                generateMetadataKey(
-                                    KEY_ROUTER_CTX,
-                                    propertyKey,
-                                ),
+                                KEY_ROUTER_CTX,
                                 target,
+                                propertyKey,
                             );
                         if (ctxMetadataValue) {
                             const context: Context = {
@@ -172,11 +172,9 @@ function createRouteMethodDecorator(
 
                         // Assign status code
                         const status = Reflect.getMetadata(
-                            generateMetadataKey(
-                                KEY_ROUTER_STATUS_CODE,
-                                propertyKey,
-                            ),
+                            KEY_ROUTER_STATUS_CODE,
                             target,
+                            propertyKey,
                         );
                         if (status) {
                             res.statusCode = status;
@@ -195,26 +193,32 @@ function createRouteMethodDecorator(
 }
 
 function createRouteParamsDecorator(paramType: string) {
-    return function (paramName?: string, parseFunc?: Function) {
+    return function (paramName?: string) {
         return function (
             target: object,
             propertyKey: string,
             paramIdx: number,
         ) {
-            const metadataKey = generateMetadataKey(paramType, propertyKey);
             const metadataValue: ParamMetadataValue = { paramIdx, paramName };
-            if (!Reflect.hasMetadata(metadataKey, target)) {
-                Reflect.defineMetadata(metadataKey, [metadataValue], target);
+            if (!Reflect.hasMetadata(paramType, target, propertyKey)) {
+                Reflect.defineMetadata(
+                    paramType,
+                    [metadataValue],
+                    target,
+                    propertyKey,
+                );
             } else {
                 const originMetadataValue: any[] = Reflect.getMetadata(
-                    metadataKey,
+                    paramType,
                     target,
+                    propertyKey,
                 );
                 originMetadataValue.push(metadataValue);
                 Reflect.defineMetadata(
-                    metadataKey,
+                    paramType,
                     originMetadataValue,
                     target,
+                    propertyKey,
                 );
             }
         };
@@ -229,10 +233,6 @@ function cutRoutePath(str: string): string {
         str = str.slice(0, str.length - 1);
     }
     return str;
-}
-
-function generateMetadataKey(...keys: string[]) {
-    return keys.join(":");
 }
 
 function genRequestId(length: number = 7): string {
