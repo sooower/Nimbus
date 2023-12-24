@@ -3,6 +3,8 @@ import crypto from "crypto";
 import { CacheClient } from "@/core/components/cacheClient";
 import { ds } from "@/core/components/dataSource";
 import { Jwt } from "@/core/components/jwt";
+import { KEY_USER_TOKEN } from "@/core/constants";
+import { NonAuth } from "@/core/decorators/nonAuthDecorator";
 import {
     Body,
     Controller,
@@ -22,6 +24,7 @@ import { UserLoginDto, UserRegisterDto } from "@/models/user";
 @Controller("/users")
 export class UserController {
     @Post("/register")
+    @NonAuth
     async register(@Body() userRegisterDto: UserRegisterDto) {
         const userRepository = ds.getRepository(User);
 
@@ -58,6 +61,7 @@ export class UserController {
     }
 
     @Put("/login")
+    @NonAuth
     async login(@Body() userLoginDto: UserLoginDto) {
         const userRepository = ds.getRepository(User);
 
@@ -84,9 +88,9 @@ export class UserController {
         }
 
         // Jwt signature
-        const token = Jwt.sign({ useId: userRecord.id });
+        const token = Jwt.sign({ userId: userRecord.id });
         await CacheClient.setWithTTL(
-            generateCacheKey("user@token", userRecord.id),
+            generateCacheKey(KEY_USER_TOKEN, userRecord.id),
             token,
         );
 
@@ -96,13 +100,13 @@ export class UserController {
     @Put("/logout/:id")
     async logout(@Param("id") id: string) {
         const res = await CacheClient.remove(
-            generateCacheKey("user@token", id),
+            generateCacheKey(KEY_USER_TOKEN, id),
         );
 
         if (!res) {
-            throw new ServiceError("Cannot logout again.");
+            throw new ServiceError("Please login first.");
         }
 
-        return;
+        return {};
     }
 }

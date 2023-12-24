@@ -11,7 +11,18 @@ type JwtConfig = {
 
 function sign(payload: string | object) {
     const { secret, options } = getJwtConfig();
+
     return jwt.sign(payload, secret, options);
+}
+
+function parse(token: string) {
+    return jwt.decode(token);
+}
+
+function verify(token: string) {
+    const { secret, options } = getJwtConfig();
+
+    return jwt.verify(token, secret, options);
 }
 
 function getJwtConfig() {
@@ -23,4 +34,4 @@ function getJwtConfig() {
     });
 }
 
-export const Jwt = { sign };
+export const Jwt = { sign, verify, parse };

@@ -1,6 +1,11 @@
 import { Router } from "express";
 
+import { CacheClient } from "@/core/components/cacheClient";
+import { Jwt } from "@/core/components/jwt";
+import { generateCacheKey } from "@/core/utils";
+
 import {
+    KEY_NONE_AUTH,
     KEY_ROUTER_BODY,
     KEY_ROUTER_CTX,
     KEY_ROUTER_HANDLER,
@@ -9,6 +14,7 @@ import {
     KEY_ROUTER_PREFIX,
     KEY_ROUTER_QUERY,
     KEY_ROUTER_STATUS_CODE,
+    KEY_USER_TOKEN,
 } from "../constants";
 import { ServiceError } from "../errors";
 import { Context, MiddlewareFunc, Next, Req, Res } from "../types";
@@ -96,19 +102,69 @@ function createRouteMethodDecorator(
             const router =
                 Reflect.getMetadata(KEY_ROUTER_HANDLER, target) || Router();
 
-            // Get method
+            // Build routes
             router[method](
                 routePath,
                 ...middlewares,
                 async (req: Req, res: Res, next: Next) => {
+                    const requestId = genRequestId();
                     try {
+                        // Check authorization
+                        const nonAuth: boolean = Reflect.getMetadata(
+                            KEY_NONE_AUTH,
+                            target,
+                            propertyKey,
+                        );
+
+                        let userId: string | undefined;
+                        if (!nonAuth) {
+                            // Check from cache and validate token
+                            const token = req.headers.authorization?.replace(
+                                "Bearer ",
+                                "",
+                            );
+                            if (!token) {
+                                throw new ServiceError(
+                                    `Authorization token is not found.`,
+                                );
+                            }
+                            const payload = Jwt.parse(token);
+
+                            if (payload === null) {
+                                throw new ServiceError(
+                                    `Parsed payload is null.`,
+                                );
+                            }
+                            if (
+                                typeof payload === "string" ||
+                                !payload.userId
+                            ) {
+                                throw new ServiceError(
+                                    `Cannot parse \`userId\` from payload. payload: ${JSON.stringify(
+                                        payload,
+                                    )}`,
+                                );
+                            }
+
+                            userId = payload.userId;
+                            if (
+                                !(await CacheClient.get(
+                                    generateCacheKey(KEY_USER_TOKEN, userId!),
+                                ))
+                            ) {
+                                throw new ServiceError(`Please login first.`);
+                            }
+
+                            Jwt.verify(token);
+                        }
+
+                        // Assign request parameters, include: "query", "params", "headers" and "body"
                         const map = new Map<string, string>();
                         map.set(KEY_ROUTER_QUERY, "query");
                         map.set(KEY_ROUTER_PARAMS, "params");
                         map.set(KEY_ROUTER_HEADERS, "headers");
                         map.set(KEY_ROUTER_BODY, "body");
 
-                        // Assign request parameters, include: "query", "params", "headers" and "body"
                         const methodArgs: any[] = [];
                         for (const [routeKey, routerValue] of map) {
                             const metadataValue: ParamMetadataValue[] =
@@ -130,8 +186,6 @@ function createRouteMethodDecorator(
                             });
                         }
 
-                        const requestId = genRequestId();
-
                         // Assign context
                         const ctxMetadataValue: CtxMetadataValue =
                             Reflect.getMetadata(
@@ -140,7 +194,7 @@ function createRouteMethodDecorator(
                                 propertyKey,
                             );
                         if (ctxMetadataValue) {
-                            const context: Context = {
+                            const ctx: Context = {
                                 req,
                                 res,
                                 query: req.query,
@@ -148,27 +202,18 @@ function createRouteMethodDecorator(
                                 headers: req.headers,
                                 body: req.body,
                                 requestId,
+                                userId,
                             };
                             methodArgs[ctxMetadataValue.paramIdx] =
                                 ctxMetadataValue.source
-                                    ? context[ctxMetadataValue.source]
-                                    : context;
+                                    ? ctx[ctxMetadataValue.source]
+                                    : ctx;
                         }
 
                         // Execute handler method
-                        let result: any;
-                        try {
-                            result = await propertyDescriptor.value(
-                                ...methodArgs,
-                            );
-                        } catch (err: any) {
-                            throw new ServiceError(
-                                err.message,
-                                err.status ?? 400,
-                                err.stack,
-                                requestId,
-                            );
-                        }
+                        const result = await propertyDescriptor.value(
+                            ...methodArgs,
+                        );
 
                         // Assign status code
                         const status = Reflect.getMetadata(
@@ -181,8 +226,15 @@ function createRouteMethodDecorator(
                         }
 
                         return res.send(result);
-                    } catch (err) {
-                        next(err);
+                    } catch (err: any) {
+                        next(
+                            new ServiceError(
+                                err.message,
+                                err.status ?? 400,
+                                err.stack,
+                                requestId,
+                            ),
+                        );
                     }
                 },
             );

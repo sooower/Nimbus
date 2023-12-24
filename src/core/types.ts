@@ -12,6 +12,7 @@ export type Context = {
     headers: any;
     body: any;
     requestId: string;
+    userId?: string;
 };
 
 export type MiddlewareFunc = (req: Req, res: Res, next: Next) => Promise<void>;

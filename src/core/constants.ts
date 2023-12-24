@@ -6,3 +6,6 @@ export const KEY_ROUTER_PARAMS = "router:params";
 export const KEY_ROUTER_HEADERS = "router:headers";
 export const KEY_ROUTER_BODY = "router:body";
 export const KEY_ROUTER_CTX = "router:context";
+
+export const KEY_NONE_AUTH = "noneAuth";
+export const KEY_USER_TOKEN = "userToken";
