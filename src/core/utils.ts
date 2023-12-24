@@ -58,7 +58,7 @@ export function getParamNamesWithIndex(func: Function): Map<string, number> {
 
 export function encryptPassword(password: string, salt: string) {
     return crypto
-        .pbkdf2Sync(password, salt, 1000, 64, "sha512")
+        .pbkdf2Sync(password, salt, 1000, 16, "sha512")
         .toString("hex");
 }
 
@@ -68,7 +68,7 @@ export function comparePassword(
     encryptedPassword: string,
 ) {
     const passwordHash = crypto
-        .pbkdf2Sync(password, salt, 1000, 64, "sha512")
+        .pbkdf2Sync(password, salt, 1000, 16, "sha512")
         .toString("hex");
 
     return encryptedPassword === passwordHash;
