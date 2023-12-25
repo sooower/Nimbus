@@ -21,28 +21,31 @@ const app = express();
  * Running app(now Express).
  */
 async function run() {
-    // Register lifecycle events
+    await registerLifecycleEvents();
+
+    app.use(corsMiddleware);
+
+    app.use(bodyParser.json());
+
+    autoRegisterRoutes(app);
+
+    app.use(errorMiddleware);
+
+    app.listen(globalConfig.port, () => {
+        logger.info(`Server started on ${globalConfig.port} (*￣︶￣).`);
+    });
+}
+
+async function registerLifecycleEvents() {
     await onReady();
+
     process.on("SIGINT", async () => {
         await onClose();
         process.exit(0);
     });
-
-    // Handle cors
-    app.use(corsMiddleware);
-
-    // Parse request body
-    app.use(bodyParser.json());
-
-    // Auto register routes
-    autoRegisterRoutes(app);
-
-    // Handle global error
-    app.use(errorMiddleware);
-
-    // Run application
-    app.listen(globalConfig.port, () => {
-        logger.info(`Server started on ${globalConfig.port} (*￣︶￣).`);
+    process.on("SIGTERM", async () => {
+        await onClose();
+        process.exit(0);
     });
 }
 
