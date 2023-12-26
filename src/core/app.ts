@@ -46,25 +46,19 @@ export class App {
      * App engine, now is only support `Express`.
      * @private
      */
-    private readonly engine: Express;
+    private readonly engine: Express = express();
 
     /**
      * Used for collect classes metadata.
      * @private
      */
-    private classMetadataMap: Map<string, ClassMetadata>;
+    private classMetadataMap: Map<string, ClassMetadata> = new Map();
 
     /**
      * Used for singleton container.
      * @private
      */
-    private instanceMap: Map<string, any>;
-
-    constructor() {
-        this.engine = express();
-        this.classMetadataMap = new Map();
-        this.instanceMap = new Map();
-    }
+    private instanceMap: Map<string, any> = new Map();
 
     /**
      * Running engine.
@@ -278,7 +272,7 @@ export class App {
                 next(
                     new ServiceError(
                         err.message,
-                        err.status ?? 400,
+                        err.status,
                         err.stack,
                         requestId,
                     ),

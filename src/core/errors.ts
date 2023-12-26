@@ -8,15 +8,11 @@ export class ServiceError extends Error {
         stack?: string,
         requestId?: string,
     ) {
-        super(message);
+        super();
 
+        this.message = message;
         this.status = status;
-
-        if (stack) {
-            this.stack = stack;
-        }
-        if (requestId) {
-            this.requestId = requestId;
-        }
+        this.stack = stack ?? this.stack;
+        this.requestId = requestId;
     }
 }
