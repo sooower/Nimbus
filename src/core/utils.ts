@@ -82,6 +82,10 @@ export function isUndefined(object: any) {
     return object === undefined;
 }
 
+export function isNull(object: any) {
+    return object === null;
+}
+
 export function isObject(x: any) {
     return typeof x === "object" ? x !== null : typeof x === "function";
 }

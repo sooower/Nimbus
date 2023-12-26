@@ -297,45 +297,44 @@ export class App {
             classMetadata.classPrototype,
             methodName,
         );
-
-        let userId: string | undefined;
-        if (!nonAuth) {
-            const authorization = req.headers.authorization;
-            if (!authorization) {
-                throw new ServiceError(`header "authorization" is not found.`);
-            }
-
-            // Check from cache and validate token
-            const token = authorization.replace("Bearer ", "");
-            if (!token) {
-                throw new ServiceError(`Authorization token is not found.`);
-            }
-            const payload = Jwt.parse(token);
-
-            if (payload === null) {
-                throw new ServiceError(`Parsed payload is null.`);
-            }
-            if (typeof payload === "string" || !payload.userId) {
-                throw new ServiceError(
-                    `Cannot parse \`userId\` from payload. payload: ${JSON.stringify(
-                        payload,
-                    )}`,
-                );
-            }
-
-            userId = payload.userId;
-            if (
-                !(await CacheClient.get(
-                    generateCacheKey(KEY_USER_TOKEN, userId!),
-                ))
-            ) {
-                throw new ServiceError(`Please login first.`);
-            }
-
-            Jwt.verify(token);
-
-            return userId;
+        if (nonAuth) {
+            return;
         }
+
+        const authorization = req.headers.authorization;
+        if (!authorization) {
+            throw new ServiceError(`header "authorization" is not found.`);
+        }
+
+        // Check from cache and validate token
+        const token = authorization.replace("Bearer ", "");
+        if (!token) {
+            throw new ServiceError(`Authorization token is not found.`);
+        }
+        const payload = Jwt.parse(token);
+
+        if (payload === null) {
+            throw new ServiceError(`Parsed payload is null.`);
+        }
+        if (typeof payload === "string" || !payload.userId) {
+            throw new ServiceError(
+                `Cannot parse \`userId\` from payload. payload: ${JSON.stringify(
+                    payload,
+                )}`,
+            );
+        }
+
+        const userId = payload.userId;
+        const userToken = await CacheClient.get(
+            generateCacheKey(KEY_USER_TOKEN, userId!),
+        );
+        if (!userToken) {
+            throw new ServiceError(`Please login first.`);
+        }
+
+        Jwt.verify(token);
+
+        return userId;
     }
 
     private assignContext(
