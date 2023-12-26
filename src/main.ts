@@ -1,3 +1,3 @@
 import { App } from "./core/app";
 
-App.run();
+new App().run();

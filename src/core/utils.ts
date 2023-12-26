@@ -77,3 +77,11 @@ export function comparePassword(
 export function generateCacheKey(...args: string[]) {
     return args.join("@").replace(/:/g, "@");
 }
+
+export function isUndefined(object: any) {
+    return object === undefined;
+}
+
+export function isObject(x: any) {
+    return typeof x === "object" ? x !== null : typeof x === "function";
+}

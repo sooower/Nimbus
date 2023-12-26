@@ -23,18 +23,18 @@ import { UserLoginDto, UserRegisterDto } from "@/models/user";
 
 @Controller("/users")
 export class UserController {
+    private userRepository = ds.getRepository(User);
+
     @Post("/register")
     @NonAuth
     async register(@Body() userRegisterDto: UserRegisterDto) {
-        const userRepository = ds.getRepository(User);
-
         if (userRegisterDto.password !== userRegisterDto.confirmedPassword) {
             throw new ServiceError(
                 "`password` is not matched with `confirmedPassword`.",
             );
         }
 
-        const userRecord = await userRepository.find({
+        const userRecord = await this.userRepository.find({
             select: ["username"],
             where: {
                 username: userRegisterDto.username,
@@ -55,7 +55,7 @@ export class UserController {
             password,
             salt: resSalt,
             ...o
-        } = await userRepository.save(user);
+        } = await this.userRepository.save(user);
 
         return o;
     }
@@ -63,9 +63,7 @@ export class UserController {
     @Put("/login")
     @NonAuth
     async login(@Body() userLoginDto: UserLoginDto) {
-        const userRepository = ds.getRepository(User);
-
-        const userRecord = await userRepository.findOne({
+        const userRecord = await this.userRepository.findOne({
             select: ["id", "salt", "password"],
             where: {
                 username: userLoginDto.username,

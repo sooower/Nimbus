@@ -1,5 +1,3 @@
-import stringify from "safe-stable-stringify";
-
 import { CacheClient } from "../components/cacheClient";
 import { logger } from "../components/logger";
 import { generateCacheKey, getParamNamesWithIndex } from "../utils";
