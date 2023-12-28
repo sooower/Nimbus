@@ -1,3 +1,3 @@
-import { App } from "@/core/app";
+import { Application } from "@/core/app";
 
-new App().run();
+Application.run();

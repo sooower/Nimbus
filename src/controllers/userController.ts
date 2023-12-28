@@ -10,7 +10,7 @@ import { DS } from "@/core/components/dataSource";
 import { User } from "@/entities/user";
 import { CacheClient } from "@/core/components/cacheClient";
 import { ServiceError } from "@/core/errors";
-import { Commons } from "@/core/utils/commons";
+import { Commons } from "@/core/utils";
 import { Jwt } from "@/core/components/jwt";
 import { UserLoginDto, UserRegisterDto } from "@/models/user";
 import { NonAuth } from "@/core/decorators/nonAuthDecorator";

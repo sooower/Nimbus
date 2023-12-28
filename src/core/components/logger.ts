@@ -1,6 +1,6 @@
 import log4js, { Configuration } from "log4js";
 import { globalConfig } from "./config";
-import { Objects } from "@/core/utils/objects";
+import { Objects } from "@/core/utils";
 
 export function appLogger(category?: string) {
     log4js.configure(

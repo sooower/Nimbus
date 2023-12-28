@@ -1,6 +1,6 @@
 import { CacheClient } from "@/core/components/cacheClient";
 import { logger } from "@/core/components/logger";
-import { Commons } from "@/core/utils/commons";
+import { Commons } from "@/core/utils";
 
 type CacheSetOptions = {
     scope: string;

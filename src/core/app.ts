@@ -1,5 +1,4 @@
 import "reflect-metadata";
-
 import bodyParser from "body-parser";
 import express, { Express, Router } from "express";
 import { globSync } from "glob";
@@ -29,354 +28,325 @@ import { globalConfig } from "@/core/components/config";
 import { logger } from "@/core/components/logger";
 import { DS } from "@/core/components/dataSource";
 import { CacheClient } from "@/core/components/cacheClient";
-import { Commons } from "@/core/utils/commons";
+import { Commons, Objects } from "@/core/utils";
 import { Context, Next, Req, Res } from "@/core/types";
 import { ServiceError } from "@/core/errors";
 import { Jwt } from "@/core/components/jwt";
-import { Objects } from "@/core/utils/objects";
 
-export class App {
-    /**
-     * App engine, now is only support `Express`.
-     * @private
-     */
-    private readonly engine: Express = express();
+const engine: Express = express();
 
-    /**
-     * Used for collect classes metadata.
-     * @private
-     */
-    private classMetadataMap: Map<string, ClassMetadata> = new Map();
+const classMetadataContainer: Map<string, ClassMetadata> = new Map();
 
-    /**
-     * Used for singleton container.
-     * @private
-     */
-    private instanceMap: Map<string, any> = new Map();
+const singletonObjects: Map<string, any> = new Map();
 
-    /**
-     * Running engine.
-     */
+export const Application = {
     async run() {
-        await this.registerLifecycleEvents();
+        await registerLifecycleEvents();
 
-        this.engine.use(corsMiddleware);
+        engine.use(corsMiddleware);
+        engine.use(bodyParser.json());
 
-        this.engine.use(bodyParser.json());
+        scanClassesMetadata([KEY_ROUTE_CLASS]);
+        await initRoutes();
 
-        this.scanClassesMetadata([KEY_ROUTE_CLASS]);
+        engine.use(errorMiddleware);
 
-        await this.initRoutes();
-
-        this.engine.use(errorMiddleware);
-
-        this.engine.listen(globalConfig.port, () => {
+        engine.listen(globalConfig.port, () => {
             logger.info(`Server started on ${globalConfig.port} (*￣︶￣).`);
         });
+    },
+};
+
+async function registerLifecycleEvents() {
+    await onReady();
+
+    process.on("SIGINT", async () => {
+        await onClose();
+        process.exit(0);
+    });
+    process.on("SIGTERM", async () => {
+        await onClose();
+        process.exit(0);
+    });
+}
+
+/**
+ * Lifecycle function, do something before engine started.
+ */
+async function onReady() {
+    try {
+        // to initialize the initial connection with the database, register all entities
+        // and "synchronize" database schema, call "initialize()" method of a newly created database
+        // once in your application bootstrap
+        await DS.initialize();
+        logger.info("Data Source initialized.");
+    } catch (err) {
+        throw new Error(
+            `Failed when executing lifecycle event "onReady". ${err}.`,
+        );
     }
+}
 
-    private async registerLifecycleEvents() {
-        await this.onReady();
+/**
+ * Lifecycle function, do something before engine shutdown.
+ */
+async function onClose() {
+    try {
+        await DS.destroy();
+        logger.info("Data Source destroyed.");
 
-        process.on("SIGINT", async () => {
-            await this.onClose();
-            process.exit(0);
-        });
-        process.on("SIGTERM", async () => {
-            await this.onClose();
-            process.exit(0);
-        });
+        await CacheClient.quit();
+        logger.info("Cache client closed.");
+    } catch (err) {
+        throw new Error(
+            `Failed when executing lifecycle event "onClose". ${err}.`,
+        );
     }
+}
 
-    /**
-     * Lifecycle function, do something before engine started.
-     */
-    private async onReady() {
-        try {
-            // to initialize the initial connection with the database, register all entities
-            // and "synchronize" database schema, call "initialize()" method of a newly created database
-            // once in your application bootstrap
-            await DS.initialize();
-            logger.info("Data Source initialized.");
-        } catch (err) {
-            throw new Error(
-                `Failed when executing lifecycle event "onReady". ${err}.`,
-            );
-        }
-    }
+async function initRoutes() {
+    for (const classMetadata of classMetadataContainer.values()) {
+        const router = Router();
 
-    /**
-     * Lifecycle function, do something before engine shutdown.
-     */
-    private async onClose() {
-        try {
-            await DS.destroy();
-            logger.info("Data Source destroyed.");
-
-            await CacheClient.quit();
-            logger.info("Cache client closed.");
-        } catch (err) {
-            throw new Error(
-                `Failed when executing lifecycle event "onClose". ${err}.`,
-            );
-        }
-    }
-
-    /**
-     * Scan files and initialize routes.
-     */
-    private async initRoutes() {
-        for (const classMetadata of this.classMetadataMap.values()) {
-            const router = Router();
-
-            for (const [
+        for (const [methodName, methodArgs] of classMetadata.methodMetadata) {
+            const routeMetadata: RouteMetadata = Reflect.getMetadata(
+                KEY_ROUTE_PATH,
+                classMetadata.classPrototype,
                 methodName,
-                methodArgs,
-            ] of classMetadata.methodMetadata) {
-                const routeMetadata: RouteMetadata = Reflect.getMetadata(
-                    KEY_ROUTE_PATH,
-                    classMetadata.classPrototype,
-                    methodName,
-                );
+            );
 
-                // Maybe some methods is not used for route
-                if (!routeMetadata) {
-                    return;
-                }
-
-                router[routeMetadata.method](
-                    routeMetadata.path,
-                    ...routeMetadata.middlewares,
-                    await this.buildExpressRouteHandler(
-                        classMetadata,
-                        methodName,
-                        methodArgs,
-                    ),
-                );
-
-                const routeClassMetadata: RouteClassMetadata =
-                    Reflect.getMetadata(KEY_ROUTE_CLASS, classMetadata.clazz);
-                this.engine.use(routeClassMetadata.routePrefix, router);
-
-                logger.debug(
-                    `Bind route: ${
-                        classMetadata.clazz.name
-                    }::${methodName} => ${routeMetadata.method.toUpperCase()} ${
-                        routeClassMetadata.routePrefix + routeMetadata.path
-                    }`,
-                );
+            // Maybe some methods is not used for route
+            if (!routeMetadata) {
+                return;
             }
-        }
-    }
 
-    private scanClassesMetadata(metadataKeys: string[]) {
-        const { baseDir, ext } = Commons.getEnvBaseDirAndExt();
-        const files = globSync(`${baseDir}/**/*.${ext}`);
-        const fileObjects = files.map(it => require(path.resolve(it)));
-
-        fileObjects.forEach(fileObject => {
-            Object.values(fileObject).forEach((x: any) => {
-                if (!isLegalClass(metadataKeys, x)) {
-                    return;
-                }
-
-                const classMetadata: ClassMetadata = {
-                    clazz: x,
-                    classPrototype: x.prototype,
-                    methodMetadata: new Map(),
-                };
-
-                const methodNames = Object.getOwnPropertyNames(
-                    x.prototype,
-                ).filter(it => it !== "constructor");
-                methodNames.forEach(methodName => {
-                    classMetadata.methodMetadata.set(methodName, []);
-                });
-
-                this.classMetadataMap.set(x.name, classMetadata);
-            });
-        });
-    }
-
-    private async buildExpressRouteHandler(
-        classMetadata: ClassMetadata,
-        methodName: string,
-        methodArgs: string[],
-    ) {
-        return async (req: Req, res: Res, next: Next) => {
-            const requestId = generateRequestId();
-            try {
-                // Check authorization
-                const userId = await this.checkAuthorization(
-                    req,
-                    classMetadata,
-                    methodName,
-                );
-
-                // Assign method args
-                const map = new Map<string, string>();
-                map.set(KEY_ROUTE_QUERY, "query");
-                map.set(KEY_ROUTE_PARAMS, "params");
-                map.set(KEY_ROUTE_HEADERS, "headers");
-                map.set(KEY_ROUTE_BODY, "body");
-
-                for (const [routeKey, routerValue] of map) {
-                    const paramMetadata: ParamMetadata[] = Reflect.getMetadata(
-                        routeKey,
-                        classMetadata.classPrototype,
-                        methodName,
-                    );
-                    (paramMetadata ?? []).forEach(it => {
-                        if (it.paramName) {
-                            methodArgs[it.paramIndex] = (req as any)[
-                                routerValue
-                            ][it.paramName];
-                        } else {
-                            methodArgs[it.paramIndex] = (req as any)[
-                                routerValue
-                            ];
-                        }
-                    });
-                }
-
-                // Assign context
-                this.assignContext(
-                    req,
-                    res,
+            router[routeMetadata.method](
+                routeMetadata.path,
+                ...routeMetadata.middlewares,
+                await buildExpressRouteHandler(
                     classMetadata,
                     methodName,
                     methodArgs,
-                    userId,
-                    requestId,
-                );
+                ),
+            );
 
-                // Get singleton
-                const instance = this.getSingleton(classMetadata.clazz);
+            const routeClassMetadata: RouteClassMetadata = Reflect.getMetadata(
+                KEY_ROUTE_CLASS,
+                classMetadata.clazz,
+            );
+            engine.use(routeClassMetadata.routePrefix, router);
 
-                // Execute handler method
-                const result = await instance[methodName](
-                    ...classMetadata.methodMetadata.get(methodName)!,
-                );
-
-                // Assign status code
-                this.assignStatusCode(res, classMetadata, methodName);
-
-                return res.send(result);
-            } catch (err: any) {
-                next(
-                    new ServiceError(
-                        err.message,
-                        err.status,
-                        err.stack,
-                        requestId,
-                    ),
-                );
-            }
-        };
-    }
-
-    private async checkAuthorization(
-        req: Req,
-        classMetadata: ClassMetadata,
-        methodName: string,
-    ) {
-        const nonAuth: boolean = Reflect.getMetadata(
-            KEY_NONE_AUTH,
-            classMetadata.classPrototype,
-            methodName,
-        );
-        if (nonAuth) {
-            return;
-        }
-
-        const authorization = req.headers.authorization;
-        if (!authorization) {
-            throw new ServiceError(`header "authorization" is not found.`);
-        }
-
-        // Check from cache and validate token
-        const token = authorization.replace("Bearer ", "");
-        if (!token) {
-            throw new ServiceError(`Authorization token is not found.`);
-        }
-        const payload = Jwt.parse(token);
-
-        if (payload === null) {
-            throw new ServiceError(`Parsed payload is null.`);
-        }
-        if (typeof payload === "string" || !payload.userId) {
-            throw new ServiceError(
-                `Cannot parse \`userId\` from payload. payload: ${JSON.stringify(
-                    payload,
-                )}`,
+            logger.debug(
+                `Bind route: ${
+                    classMetadata.clazz.name
+                }::${methodName} => ${routeMetadata.method.toUpperCase()} ${
+                    routeClassMetadata.routePrefix + routeMetadata.path
+                }`,
             );
         }
-
-        const userId = payload.userId;
-        const userToken = await CacheClient.get(
-            Commons.generateCacheKey(KEY_USER_TOKEN, userId!),
-        );
-        if (!userToken) {
-            throw new ServiceError(`Please login first.`);
-        }
-
-        Jwt.verify(token);
-
-        return userId;
     }
+}
 
-    private assignContext(
-        req: Req,
-        res: Res,
-        classMetadata: ClassMetadata,
-        methodName: string,
-        methodArgs: string[],
-        userId: string | undefined,
-        requestId: string,
-    ) {
-        const ctxMetadata: CtxMetadata = Reflect.getMetadata(
-            KEY_ROUTE_CTX,
-            classMetadata.classPrototype,
-            methodName,
-        );
-        if (ctxMetadata) {
-            const ctx: Context = {
+function scanClassesMetadata(metadataKeys: string[]) {
+    const { baseDir, ext } = Commons.getEnvBaseDirAndExt();
+    const files = globSync(`${baseDir}/**/*.${ext}`);
+    const fileObjects = files.map(it => require(path.resolve(it)));
+
+    fileObjects.forEach(fileObject => {
+        Object.values(fileObject).forEach((x: any) => {
+            if (!isLegalClass(metadataKeys, x)) {
+                return;
+            }
+
+            const classMetadata: ClassMetadata = {
+                clazz: x,
+                classPrototype: x.prototype,
+                methodMetadata: new Map(),
+            };
+
+            const methodNames = Object.getOwnPropertyNames(x.prototype).filter(
+                it => it !== "constructor",
+            );
+            methodNames.forEach(methodName => {
+                classMetadata.methodMetadata.set(methodName, []);
+            });
+
+            classMetadataContainer.set(x.name, classMetadata);
+        });
+    });
+}
+
+async function buildExpressRouteHandler(
+    classMetadata: ClassMetadata,
+    methodName: string,
+    methodArgs: string[],
+) {
+    return async (req: Req, res: Res, next: Next) => {
+        const requestId = generateRequestId();
+        try {
+            // Check authorization
+            const userId = await checkAuthorization(
+                req,
+                classMetadata,
+                methodName,
+            );
+
+            // Assign method args
+            const map = new Map<string, string>();
+            map.set(KEY_ROUTE_QUERY, "query");
+            map.set(KEY_ROUTE_PARAMS, "params");
+            map.set(KEY_ROUTE_HEADERS, "headers");
+            map.set(KEY_ROUTE_BODY, "body");
+
+            for (const [routeKey, routerValue] of map) {
+                const paramMetadata: ParamMetadata[] = Reflect.getMetadata(
+                    routeKey,
+                    classMetadata.classPrototype,
+                    methodName,
+                );
+                (paramMetadata ?? []).forEach(it => {
+                    if (it.paramName) {
+                        methodArgs[it.paramIndex] = (req as any)[routerValue][
+                            it.paramName
+                        ];
+                    } else {
+                        methodArgs[it.paramIndex] = (req as any)[routerValue];
+                    }
+                });
+            }
+
+            // Assign context
+            assignContext(
                 req,
                 res,
-                query: req.query,
-                params: req.params,
-                headers: req.headers,
-                body: req.body,
-                requestId,
+                classMetadata,
+                methodName,
+                methodArgs,
                 userId,
-            };
-            methodArgs[ctxMetadata.paramIdx] = ctxMetadata.source
-                ? ctx[ctxMetadata.source]
-                : ctx;
+                requestId,
+            );
+
+            // Get singleton
+            const instance = getSingleton(classMetadata.clazz);
+
+            // Execute handler method
+            const result = await instance[methodName](
+                ...classMetadata.methodMetadata.get(methodName)!,
+            );
+
+            // Assign status code
+            assignStatusCode(res, classMetadata, methodName);
+
+            return res.send(result);
+        } catch (err: any) {
+            next(
+                new ServiceError(err.message, err.status, err.stack, requestId),
+            );
         }
+    };
+}
+
+async function checkAuthorization(
+    req: Req,
+    classMetadata: ClassMetadata,
+    methodName: string,
+) {
+    const nonAuth: boolean = Reflect.getMetadata(
+        KEY_NONE_AUTH,
+        classMetadata.classPrototype,
+        methodName,
+    );
+    if (nonAuth) {
+        return;
     }
 
-    private assignStatusCode(
-        res: Res,
-        classMetadata: ClassMetadata,
-        methodName: string,
-    ) {
-        const status = Reflect.getMetadata(
-            KEY_ROUTE_STATUS_CODE,
-            classMetadata.classPrototype,
-            methodName,
+    const authorization = req.headers.authorization;
+    if (!authorization) {
+        throw new ServiceError(`header "authorization" is not found.`);
+    }
+
+    // Check from cache and validate token
+    const token = authorization.replace("Bearer ", "");
+    if (!token) {
+        throw new ServiceError(`Authorization token is not found.`);
+    }
+    const payload = Jwt.parse(token);
+
+    if (payload === null) {
+        throw new ServiceError(`Parsed payload is null.`);
+    }
+    if (typeof payload === "string" || !payload.userId) {
+        throw new ServiceError(
+            `Cannot parse \`userId\` from payload. payload: ${JSON.stringify(
+                payload,
+            )}`,
         );
-        if (status) {
-            res.statusCode = status;
-        }
     }
 
-    private getSingleton(clazz: any) {
-        if (!this.instanceMap.has(clazz.name)) {
-            this.instanceMap.set(clazz.name, new clazz());
-        }
-        return this.instanceMap.get(clazz.name);
+    const userId = payload.userId;
+    const userToken = await CacheClient.get(
+        Commons.generateCacheKey(KEY_USER_TOKEN, userId!),
+    );
+    if (!userToken) {
+        throw new ServiceError(`Please login first.`);
     }
+
+    Jwt.verify(token);
+
+    return userId;
+}
+
+function assignContext(
+    req: Req,
+    res: Res,
+    classMetadata: ClassMetadata,
+    methodName: string,
+    methodArgs: string[],
+    userId: string | undefined,
+    requestId: string,
+) {
+    const ctxMetadata: CtxMetadata = Reflect.getMetadata(
+        KEY_ROUTE_CTX,
+        classMetadata.classPrototype,
+        methodName,
+    );
+    if (ctxMetadata) {
+        const ctx: Context = {
+            req,
+            res,
+            query: req.query,
+            params: req.params,
+            headers: req.headers,
+            body: req.body,
+            requestId,
+            userId,
+        };
+        methodArgs[ctxMetadata.paramIdx] = ctxMetadata.source
+            ? ctx[ctxMetadata.source]
+            : ctx;
+    }
+}
+
+function assignStatusCode(
+    res: Res,
+    classMetadata: ClassMetadata,
+    methodName: string,
+) {
+    const status = Reflect.getMetadata(
+        KEY_ROUTE_STATUS_CODE,
+        classMetadata.classPrototype,
+        methodName,
+    );
+    if (status) {
+        res.statusCode = status;
+    }
+}
+
+function getSingleton(clazz: any) {
+    if (!singletonObjects.has(clazz.name)) {
+        singletonObjects.set(clazz.name, new clazz());
+    }
+    return singletonObjects.get(clazz.name);
 }
 
 function generateRequestId(length: number = 7): string {
