@@ -12,6 +12,7 @@ import {
 } from "@/core/decorators/routeDecorator";
 import { corsMiddleware } from "@/core/middlewares/corsMiddleware";
 import {
+    KEY_INJECTABLE,
     KEY_NONE_AUTH,
     KEY_ROUTE_BODY,
     KEY_ROUTE_CLASS,
@@ -30,14 +31,13 @@ import { DS } from "@/core/components/dataSource";
 import { CacheClient } from "@/core/components/cacheClient";
 import { Commons, Objects } from "@/core/utils";
 import { Context, Next, Req, Res } from "@/core/types";
-import { ServiceError } from "@/core/errors";
+import { ObjectInitializeError, ServiceError } from "@/core/errors";
 import { Jwt } from "@/core/components/jwt";
 
 const engine: Express = express();
-
 const classMetadataContainer: Map<string, ClassMetadata> = new Map();
-
-const singletonObjects: Map<string, any> = new Map();
+const instantiatedSingletonObjects: Map<string, any> = new Map();
+const initializedSingletonObjects: Map<string, any> = new Map();
 
 export const Application = {
     async run() {
@@ -46,8 +46,8 @@ export const Application = {
         engine.use(corsMiddleware);
         engine.use(bodyParser.json());
 
-        scanClassesMetadata([KEY_ROUTE_CLASS]);
-        await initRoutes();
+        initializeInjectableObjects();
+        await initializeRoutes();
 
         engine.use(errorMiddleware);
 
@@ -104,20 +104,23 @@ async function onClose() {
     }
 }
 
-async function initRoutes() {
+async function initializeRoutes() {
     for (const classMetadata of classMetadataContainer.values()) {
         const router = Router();
 
-        for (const [methodName, methodArgs] of classMetadata.methodMetadata) {
+        for (const [
+            methodName,
+            methodArgs,
+        ] of classMetadata.methodArgsMetadata) {
             const routeMetadata: RouteMetadata = Reflect.getMetadata(
                 KEY_ROUTE_PATH,
-                classMetadata.classPrototype,
+                classMetadata.clazz.prototype,
                 methodName,
             );
 
             // Maybe some methods is not used for route
             if (!routeMetadata) {
-                return;
+                continue;
             }
 
             router[routeMetadata.method](
@@ -141,39 +144,133 @@ async function initRoutes() {
                     classMetadata.clazz.name
                 }::${methodName} => ${routeMetadata.method.toUpperCase()} ${
                     routeClassMetadata.routePrefix + routeMetadata.path
-                }`,
+                }.`,
             );
         }
     }
 }
 
-function scanClassesMetadata(metadataKeys: string[]) {
+function initializeInjectableObjects() {
+    scanInjectableClassesMetadata();
+    logger.debug(`Scan injectable classes metadata completed.`);
+
+    Array.from(classMetadataContainer.values()).forEach(classMetadata => {
+        createObjectInstance(classMetadata);
+    });
+    logger.debug(`Initialize injectable objects completed.`);
+}
+
+function scanInjectableClassesMetadata() {
     const { baseDir, ext } = Commons.getEnvBaseDirAndExt();
     const files = globSync(`${baseDir}/**/*.${ext}`);
     const fileObjects = files.map(it => require(path.resolve(it)));
 
     fileObjects.forEach(fileObject => {
-        Object.values(fileObject).forEach((x: any) => {
-            if (!isLegalClass(metadataKeys, x)) {
+        Object.values(fileObject).forEach((target: any) => {
+            if (!isInjectableClass(target)) {
                 return;
             }
 
             const classMetadata: ClassMetadata = {
-                clazz: x,
-                classPrototype: x.prototype,
-                methodMetadata: new Map(),
+                clazz: target,
+                constructorParamTypesMetadata: [],
+                methodArgsMetadata: new Map(),
             };
 
-            const methodNames = Object.getOwnPropertyNames(x.prototype).filter(
-                it => it !== "constructor",
-            );
-            methodNames.forEach(methodName => {
-                classMetadata.methodMetadata.set(methodName, []);
-            });
+            const constructorParamTypes: any[] | undefined =
+                Reflect.getMetadata("design:paramtypes", target);
+            if (constructorParamTypes !== undefined) {
+                for (const paramType of constructorParamTypes) {
+                    // TODO: Maybe there has a circular dependency, now ignore this case
+                    if (paramType !== undefined) {
+                        classMetadata.constructorParamTypesMetadata.push(
+                            paramType,
+                        );
+                    }
+                }
+            }
 
-            classMetadataContainer.set(x.name, classMetadata);
+            Object.getOwnPropertyNames(target.prototype)
+                .filter(it => it !== "constructor")
+                .forEach(methodName => {
+                    classMetadata.methodArgsMetadata.set(methodName, []);
+                });
+
+            classMetadataContainer.set(target.name, classMetadata);
         });
     });
+}
+
+function createObjectInstance(classMetadata: ClassMetadata) {
+    if (!isInjectableClass(classMetadata.clazz)) {
+        throw new ObjectInitializeError(
+            `Class "${classMetadata.clazz.name}" is not injectable.`,
+        );
+    }
+
+    const instance = new classMetadata.clazz();
+    instantiatedSingletonObjects.set(classMetadata.clazz.name, instance);
+
+    populateProperties(instance, classMetadata);
+
+    initializedSingletonObjects.set(classMetadata.clazz.name, instance);
+    instantiatedSingletonObjects.delete(classMetadata.clazz.name);
+}
+
+function populateProperties(instance: any, classMetadata: ClassMetadata) {
+    if (classMetadata.constructorParamTypesMetadata === undefined) {
+        return;
+    }
+
+    const instanceParamNames = Reflect.ownKeys(instance);
+    for (
+        let i = 0;
+        i < classMetadata.constructorParamTypesMetadata.length;
+        i++
+    ) {
+        const propertyClass = classMetadata.constructorParamTypesMetadata[i];
+        const propertyName = instanceParamNames[i];
+
+        if (instance[propertyName] === undefined) {
+            const propertyInstance = getObjectInstance(propertyClass.name);
+            if (propertyInstance === undefined) {
+                const propertyClassMetadata = classMetadataContainer.get(
+                    propertyClass.name,
+                );
+
+                // Maybe some params not need to inject
+                if (propertyClassMetadata === undefined) {
+                    continue;
+                }
+                createObjectInstance(propertyClassMetadata);
+            } else {
+                instance[propertyName] = propertyInstance;
+            }
+        }
+    }
+}
+
+function getObjectInstance(className: string) {
+    let instance: any;
+    instance = initializedSingletonObjects.get(className);
+    if (instance !== undefined) {
+        return instance;
+    }
+
+    instance = instantiatedSingletonObjects.get(className);
+    if (instance !== undefined) {
+        return instance;
+    }
+
+    return undefined;
+}
+
+function isInjectableClass(target: any) {
+    if (!Objects.isObject(target)) {
+        return false;
+    }
+
+    return Reflect.getMetadata(KEY_INJECTABLE, target) !== undefined;
 }
 
 async function buildExpressRouteHandler(
@@ -199,11 +296,12 @@ async function buildExpressRouteHandler(
             map.set(KEY_ROUTE_BODY, "body");
 
             for (const [routeKey, routerValue] of map) {
-                const paramMetadata: ParamMetadata[] = Reflect.getMetadata(
-                    routeKey,
-                    classMetadata.classPrototype,
-                    methodName,
-                );
+                const paramMetadata: ParamMetadata[] | undefined =
+                    Reflect.getMetadata(
+                        routeKey,
+                        classMetadata.clazz.prototype,
+                        methodName,
+                    );
                 (paramMetadata ?? []).forEach(it => {
                     if (it.paramName) {
                         methodArgs[it.paramIndex] = (req as any)[routerValue][
@@ -227,11 +325,13 @@ async function buildExpressRouteHandler(
             );
 
             // Get singleton
-            const instance = getSingleton(classMetadata.clazz);
+            const instance = initializedSingletonObjects.get(
+                classMetadata.clazz.name,
+            );
 
             // Execute handler method
             const result = await instance[methodName](
-                ...classMetadata.methodMetadata.get(methodName)!,
+                ...classMetadata.methodArgsMetadata.get(methodName)!,
             );
 
             // Assign status code
@@ -253,7 +353,7 @@ async function checkAuthorization(
 ) {
     const nonAuth: boolean = Reflect.getMetadata(
         KEY_NONE_AUTH,
-        classMetadata.classPrototype,
+        classMetadata.clazz.prototype,
         methodName,
     );
     if (nonAuth) {
@@ -307,7 +407,7 @@ function assignContext(
 ) {
     const ctxMetadata: CtxMetadata = Reflect.getMetadata(
         KEY_ROUTE_CTX,
-        classMetadata.classPrototype,
+        classMetadata.clazz.prototype,
         methodName,
     );
     if (ctxMetadata) {
@@ -334,19 +434,12 @@ function assignStatusCode(
 ) {
     const status = Reflect.getMetadata(
         KEY_ROUTE_STATUS_CODE,
-        classMetadata.classPrototype,
+        classMetadata.clazz.prototype,
         methodName,
     );
     if (status) {
         res.statusCode = status;
     }
-}
-
-function getSingleton(clazz: any) {
-    if (!singletonObjects.has(clazz.name)) {
-        singletonObjects.set(clazz.name, new clazz());
-    }
-    return singletonObjects.get(clazz.name);
 }
 
 function generateRequestId(length: number = 7): string {
@@ -356,18 +449,4 @@ function generateRequestId(length: number = 7): string {
         result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return result;
-}
-
-function isLegalClass(metadataKeys: string[], target: any) {
-    if (!Objects.isObject(target)) {
-        return false;
-    }
-
-    for (const metadataKey of metadataKeys) {
-        if (!Objects.isUndefined(Reflect.getMetadata(metadataKey, target))) {
-            return true;
-        }
-    }
-
-    return false;
 }

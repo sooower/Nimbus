@@ -16,3 +16,12 @@ export class ServiceError extends Error {
         this.requestId = requestId;
     }
 }
+
+export class ObjectInitializeError extends Error {
+    constructor(message: string) {
+        super();
+
+        this.name = "ObjectInitializeError";
+        this.message = message;
+    }
+}

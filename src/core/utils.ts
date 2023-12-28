@@ -46,27 +46,11 @@ export const Commons = {
 
 export const Objects = {
     /**
-     * Check for value is undefined.
-     * @param value
-     */
-    isUndefined(value: any) {
-        return value === undefined;
-    },
-
-    /**
      * Check for value is undefined or null.
      * @param value
      */
     isNil(value: any) {
-        return Objects.isUndefined(value) || Objects.isNull(value);
-    },
-
-    /**
-     * Check for value is null.
-     * @param value
-     */
-    isNull(value: any) {
-        return value === null;
+        return value === undefined || value === null;
     },
 
     /**
@@ -102,31 +86,5 @@ export const Objects = {
         }
 
         return merged;
-    },
-};
-
-export const Asserts = {
-    isUndefined(object: any, ...errMsg: any[]) {
-        if (!Objects.isUndefined(object)) {
-            throw new Error(...errMsg);
-        }
-    },
-
-    isNull(object: any, ...errMsg: any[]) {
-        if (!Objects.isNull(object)) {
-            throw new Error(...errMsg);
-        }
-    },
-
-    isNil(object: any, ...errMsg: any[]) {
-        if (!Objects.isNil(object)) {
-            throw new Error(...errMsg);
-        }
-    },
-
-    isObject(object: any, ...errMsg: any[]) {
-        if (!Objects.isObject(object)) {
-            throw new Error(...errMsg);
-        }
     },
 };

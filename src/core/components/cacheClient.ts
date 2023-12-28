@@ -31,7 +31,7 @@ export const CacheClient = {
         const res = await cacheClient.setnx(key, value);
 
         if (res !== 1) {
-            logger.warn(`Key ${key} already exists`);
+            logger.warn(`Key ${key} already exists.`);
 
             return false;
         }

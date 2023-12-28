@@ -1,5 +1,6 @@
 import { MiddlewareFunc } from "@/core/types";
 import {
+    KEY_INJECTABLE,
     KEY_ROUTE_BODY,
     KEY_ROUTE_CLASS,
     KEY_ROUTE_CTX,
@@ -27,8 +28,13 @@ export type CtxMetadata = {
 
 export type ClassMetadata = {
     clazz: any;
-    classPrototype: any;
-    methodMetadata: Map<string, string[]>;
+
+    constructorParamTypesMetadata: any[];
+
+    /**
+     * Other member methods args metadata.
+     */
+    methodArgsMetadata: Map<string, string[]>;
 };
 
 export type RouteMethod = "get" | "post" | "put" | "patch" | "delete";
@@ -51,8 +57,10 @@ export type ParamMetadata = {
 export function Controller(prefix?: string): ClassDecorator {
     const routePrefix = prefix == "/" || !prefix ? "" : cutRoutePath(prefix);
     const routeClassMetadata: RouteClassMetadata = { routePrefix };
+
     return function (target: any) {
         Reflect.defineMetadata(KEY_ROUTE_CLASS, routeClassMetadata, target);
+        Reflect.defineMetadata(KEY_INJECTABLE, true, target);
     };
 }
 
