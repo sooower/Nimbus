@@ -1,7 +1,6 @@
-import dayjs from "dayjs";
-
-import { NonAuth } from "@/core/decorators/nonAuthDecorator";
 import { Controller, Get } from "@/core/decorators/routeDecorator";
+import { NonAuth } from "@/core/decorators/nonAuthDecorator";
+import dayjs from "dayjs";
 
 @Controller("/ping")
 export class PingController {

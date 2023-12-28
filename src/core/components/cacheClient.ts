@@ -1,15 +1,14 @@
-import Redis from "ioredis";
-import { RedisOptions } from "ioredis/built/redis/RedisOptions";
+import { globalConfig } from "@/core/components/config";
+import { logger } from "@/core/components/logger";
+import { Objects } from "@/core/utils/objects";
+import Redis, { RedisOptions } from "ioredis";
 import stringify from "safe-stable-stringify";
 
-import { mergeObjects } from "@/core/utils";
-
-import { globalConfig } from "./config";
-import { logger } from "./logger";
+const cacheClient = getRedisCacheClient();
 
 function getRedisCacheClient() {
     const redis = new Redis(
-        mergeObjects<RedisOptions>(globalConfig.redis, {
+        Objects.mergeObjects<RedisOptions>(globalConfig.redis, {
             host: "localhost",
             port: 6379,
         }),
@@ -18,8 +17,6 @@ function getRedisCacheClient() {
 
     return redis;
 }
-
-export const cacheClient = getRedisCacheClient();
 
 async function set(key: string, value: any) {
     return cacheClient.set(key, stringify(value)!);
@@ -56,6 +53,10 @@ async function has(key: string) {
     return !!(await cacheClient.exists(key));
 }
 
+async function quit() {
+    await cacheClient.quit();
+}
+
 export const CacheClient = {
     get,
     set,
@@ -63,4 +64,5 @@ export const CacheClient = {
     setnxWithTTL,
     remove,
     has,
+    quit,
 };

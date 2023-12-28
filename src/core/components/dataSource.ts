@@ -1,12 +1,10 @@
 import { DataSource } from "typeorm";
 import { DataSourceOptions } from "typeorm/data-source/DataSourceOptions";
-
-import { mergeObjects } from "@/core/utils";
-
-import { globalConfig } from "./config";
+import { globalConfig } from "@/core/components/config";
+import { Objects } from "@/core/utils/objects";
 
 export const ds = new DataSource(
-    mergeObjects<DataSourceOptions>(globalConfig.dataSource, {
+    Objects.mergeObjects<DataSourceOptions>(globalConfig.dataSource, {
         type: "postgres",
         host: "localhost",
         port: 5432,

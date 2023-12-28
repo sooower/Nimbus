@@ -1,3 +1,4 @@
+import { MiddlewareFunc } from "@/core/types";
 import {
     KEY_ROUTE_BODY,
     KEY_ROUTE_CLASS,
@@ -7,8 +8,7 @@ import {
     KEY_ROUTE_PATH,
     KEY_ROUTE_QUERY,
     KEY_ROUTE_STATUS_CODE,
-} from "../constants";
-import { MiddlewareFunc } from "../types";
+} from "@/core/constants";
 
 export type CtxSource =
     | "req"

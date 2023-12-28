@@ -1,10 +1,4 @@
 import crypto from "crypto";
-
-import { CacheClient } from "@/core/components/cacheClient";
-import { ds } from "@/core/components/dataSource";
-import { Jwt } from "@/core/components/jwt";
-import { KEY_USER_TOKEN } from "@/core/constants";
-import { NonAuth } from "@/core/decorators/nonAuthDecorator";
 import {
     Body,
     Controller,
@@ -12,14 +6,15 @@ import {
     Post,
     Put,
 } from "@/core/decorators/routeDecorator";
-import { ServiceError } from "@/core/errors";
-import {
-    comparePassword,
-    encryptPassword,
-    generateCacheKey,
-} from "@/core/utils";
+import { ds } from "@/core/components/dataSource";
 import { User } from "@/entities/user";
+import { CacheClient } from "@/core/components/cacheClient";
+import { ServiceError } from "@/core/errors";
+import { Commons } from "@/core/utils/commons";
+import { Jwt } from "@/core/components/jwt";
 import { UserLoginDto, UserRegisterDto } from "@/models/user";
+import { NonAuth } from "@/core/decorators/nonAuthDecorator";
+import { KEY_USER_TOKEN } from "@/core/constants";
 
 @Controller("/users")
 export class UserController {
@@ -48,7 +43,7 @@ export class UserController {
 
         const user = new User();
         user.username = userRegisterDto.username;
-        user.password = encryptPassword(userRegisterDto.password, salt);
+        user.password = Commons.encryptPassword(userRegisterDto.password, salt);
         user.salt = salt;
 
         const {
@@ -76,7 +71,7 @@ export class UserController {
 
         // Compare password
         if (
-            !comparePassword(
+            !Commons.comparePassword(
                 userLoginDto.password,
                 userRecord.salt,
                 userRecord.password,
@@ -88,7 +83,7 @@ export class UserController {
         // Jwt signature
         const token = Jwt.sign({ userId: userRecord.id });
         await CacheClient.setWithTTL(
-            generateCacheKey(KEY_USER_TOKEN, userRecord.id),
+            Commons.generateCacheKey(KEY_USER_TOKEN, userRecord.id),
             token,
         );
 
@@ -98,7 +93,7 @@ export class UserController {
     @Put("/logout/:id")
     async logout(@Param("id") id: string) {
         const res = await CacheClient.remove(
-            generateCacheKey(KEY_USER_TOKEN, id),
+            Commons.generateCacheKey(KEY_USER_TOKEN, id),
         );
 
         if (!res) {

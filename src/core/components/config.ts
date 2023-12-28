@@ -1,9 +1,9 @@
 import path from "path";
-
-import { getEnvBaseDirAndExt, mergeObjects } from "../utils";
+import { Commons } from "@/core/utils/commons";
+import { Objects } from "@/core/utils/objects";
 
 function loadConfig(): any {
-    const { env, baseDir, ext } = getEnvBaseDirAndExt();
+    const { env, baseDir, ext } = Commons.getEnvBaseDirAndExt();
     const defaultConfig = require(
         path.resolve(`${baseDir}/config/config.${ext}`),
     ).default;
@@ -11,7 +11,7 @@ function loadConfig(): any {
         path.resolve(`${baseDir}/config/config.${env}.${ext}`),
     ).default;
 
-    return mergeObjects(envConfig, defaultConfig);
+    return Objects.mergeObjects(envConfig, defaultConfig);
 }
 
 export const globalConfig = loadConfig();

@@ -4,9 +4,6 @@ import bodyParser from "body-parser";
 import express, { Express, Router } from "express";
 import { globSync } from "glob";
 import path from "path";
-
-import { ds } from "@/core/components/dataSource";
-import { Jwt } from "@/core/components/jwt";
 import {
     ClassMetadata,
     CtxMetadata,
@@ -14,12 +11,7 @@ import {
     RouteClassMetadata,
     RouteMetadata,
 } from "@/core/decorators/routeDecorator";
-import { ServiceError } from "@/core/errors";
-import { Context, Next, Req, Res } from "@/core/types";
-
-import { CacheClient, cacheClient } from "./components/cacheClient";
-import { globalConfig } from "./components/config";
-import { logger } from "./components/logger";
+import { corsMiddleware } from "@/core/middlewares/corsMiddleware";
 import {
     KEY_NONE_AUTH,
     KEY_ROUTE_BODY,
@@ -31,15 +23,17 @@ import {
     KEY_ROUTE_QUERY,
     KEY_ROUTE_STATUS_CODE,
     KEY_USER_TOKEN,
-} from "./constants";
-import { corsMiddleware } from "./middlewares/corsMiddleware";
-import { errorMiddleware } from "./middlewares/errorMiddleware";
-import {
-    generateCacheKey,
-    getEnvBaseDirAndExt,
-    isObject,
-    isUndefined,
-} from "./utils";
+} from "@/core/constants";
+import { errorMiddleware } from "@/core/middlewares/errorMiddleware";
+import { globalConfig } from "@/core/components/config";
+import { logger } from "@/core/components/logger";
+import { ds } from "@/core/components/dataSource";
+import { CacheClient } from "@/core/components/cacheClient";
+import { Commons } from "@/core/utils/commons";
+import { Context, Next, Req, Res } from "@/core/types";
+import { ServiceError } from "@/core/errors";
+import { Jwt } from "@/core/components/jwt";
+import { Objects } from "@/core/utils/objects";
 
 export class App {
     /**
@@ -119,7 +113,7 @@ export class App {
             await ds.destroy();
             logger.info("Data Source destroyed.");
 
-            await cacheClient.quit();
+            await CacheClient.quit();
             logger.info("Cache client closed.");
         } catch (err) {
             throw new Error(
@@ -176,7 +170,7 @@ export class App {
     }
 
     private scanClassesMetadata(metadataKeys: string[]) {
-        const { baseDir, ext } = getEnvBaseDirAndExt();
+        const { baseDir, ext } = Commons.getEnvBaseDirAndExt();
         const files = globSync(`${baseDir}/**/*.${ext}`);
         const fileObjects = files.map(it => require(path.resolve(it)));
 
@@ -320,7 +314,7 @@ export class App {
 
         const userId = payload.userId;
         const userToken = await CacheClient.get(
-            generateCacheKey(KEY_USER_TOKEN, userId!),
+            Commons.generateCacheKey(KEY_USER_TOKEN, userId!),
         );
         if (!userToken) {
             throw new ServiceError(`Please login first.`);
@@ -395,12 +389,12 @@ function generateRequestId(length: number = 7): string {
 }
 
 function isLegalClass(metadataKeys: string[], target: any) {
-    if (!isObject(target)) {
+    if (!Objects.isObject(target)) {
         return false;
     }
 
     for (const metadataKey of metadataKeys) {
-        if (!isUndefined(Reflect.getMetadata(metadataKey, target))) {
+        if (!Objects.isUndefined(Reflect.getMetadata(metadataKey, target))) {
             return true;
         }
     }

@@ -1,6 +1,6 @@
-import { logger } from "../components/logger";
-import { ServiceError } from "../errors";
-import { Next, Req, Res } from "../types";
+import { Next, Req, Res } from "@/core/types";
+import { ServiceError } from "@/core/errors";
+import { logger } from "@/core/components/logger";
 
 export function errorMiddleware(err: Error, req: Req, res: Res, next: Next) {
     if (err instanceof ServiceError) {

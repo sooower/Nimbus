@@ -1,8 +1,6 @@
 import jwt, { Secret, SignOptions } from "jsonwebtoken";
-
-import { mergeObjects } from "@/core/utils";
-
-import { globalConfig } from "./config";
+import { globalConfig } from "@/core/components/config";
+import { Objects } from "@/core/utils/objects";
 
 type JwtConfig = {
     secret: Secret;
@@ -26,7 +24,7 @@ function verify(token: string) {
 }
 
 function getJwtConfig() {
-    return mergeObjects<JwtConfig>(globalConfig.jwt, {
+    return Objects.mergeObjects<JwtConfig>(globalConfig.jwt, {
         secret: "Test_Jwt_Sign_Secret",
         options: {
             expiresIn: "30d",

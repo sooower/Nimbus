@@ -1,6 +1,6 @@
-import { CacheClient } from "../components/cacheClient";
-import { logger } from "../components/logger";
-import { generateCacheKey, getParamNamesWithIndex } from "../utils";
+import { CacheClient } from "@/core/components/cacheClient";
+import { logger } from "@/core/components/logger";
+import { Commons } from "@/core/utils/commons";
 
 type CacheSetOptions = {
     scope: string;
@@ -28,7 +28,7 @@ export function Cacheable(options: CacheSetOptions) {
                 args,
             );
 
-            const cacheKey = generateCacheKey(options.scope, key);
+            const cacheKey = Commons.generateCacheKey(options.scope, key);
 
             if (await CacheClient.has(cacheKey)) {
                 logger.debug("Fetching data from cache.");
@@ -73,7 +73,7 @@ export function CachePut(options: CacheSetOptions) {
                     originalMethod,
                     args,
                 );
-                const cacheKey = generateCacheKey(options.scope, key);
+                const cacheKey = Commons.generateCacheKey(options.scope, key);
 
                 options.ttl > 0
                     ? await CacheClient.setWithTTL(cacheKey, res, options.ttl)
@@ -107,7 +107,7 @@ export function CacheEvict(options: CacheRemoveOptions) {
                 originalMethod,
                 args,
             );
-            const cacheKey = generateCacheKey(options.scope, key);
+            const cacheKey = Commons.generateCacheKey(options.scope, key);
             if (await CacheClient.has(cacheKey)) {
                 await CacheClient.remove(cacheKey);
                 logger.debug(`Removed cache, Key <${cacheKey}>.`);
@@ -121,7 +121,7 @@ export function CacheEvict(options: CacheRemoveOptions) {
 }
 
 /**
- * Parse `key` in Decorator with method's params value if it start with ":".
+ * Parse `key` in Decorator with method's params value if it starts with ":".
  *
  * @param originStr Cache key
  * @param method Cache method
@@ -137,7 +137,7 @@ function parseKeyWithMethodsParams(
 
     // Set cache key with params value
     if (originStr.startsWith(":")) {
-        const paramNamesMap = getParamNamesWithIndex(method);
+        const paramNamesMap = Commons.getParamNamesWithIndex(method);
         for (const [arg, index] of paramNamesMap) {
             if (arg === originStr.slice(1)) {
                 res = methodArgs[index];
