@@ -27,7 +27,7 @@ import {
 import { errorMiddleware } from "@/core/middlewares/errorMiddleware";
 import { globalConfig } from "@/core/components/config";
 import { logger } from "@/core/components/logger";
-import { ds } from "@/core/components/dataSource";
+import { DS } from "@/core/components/dataSource";
 import { CacheClient } from "@/core/components/cacheClient";
 import { Commons } from "@/core/utils/commons";
 import { Context, Next, Req, Res } from "@/core/types";
@@ -96,7 +96,7 @@ export class App {
             // to initialize the initial connection with the database, register all entities
             // and "synchronize" database schema, call "initialize()" method of a newly created database
             // once in your application bootstrap
-            await ds.initialize();
+            await DS.initialize();
             logger.info("Data Source initialized.");
         } catch (err) {
             throw new Error(
@@ -110,7 +110,7 @@ export class App {
      */
     private async onClose() {
         try {
-            await ds.destroy();
+            await DS.destroy();
             logger.info("Data Source destroyed.");
 
             await CacheClient.quit();

@@ -6,7 +6,7 @@ import {
     Post,
     Put,
 } from "@/core/decorators/routeDecorator";
-import { ds } from "@/core/components/dataSource";
+import { DS } from "@/core/components/dataSource";
 import { User } from "@/entities/user";
 import { CacheClient } from "@/core/components/cacheClient";
 import { ServiceError } from "@/core/errors";
@@ -18,7 +18,7 @@ import { KEY_USER_TOKEN } from "@/core/constants";
 
 @Controller("/users")
 export class UserController {
-    private userRepository = ds.getRepository(User);
+    private userRepository = DS.getRepository(User);
 
     @Post("/register")
     @NonAuth
