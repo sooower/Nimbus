@@ -31,7 +31,7 @@ import { DS } from "@/core/components/dataSource";
 import { CacheClient } from "@/core/components/cacheClient";
 import { Commons, Objects } from "@/core/utils";
 import { Context, Next, Req, Res } from "@/core/types";
-import { ObjectInitializeError, ServiceError } from "@/core/errors";
+import { ObjectInitializationError, ServiceError } from "@/core/errors";
 import { Jwt } from "@/core/components/jwt";
 
 const engine: Express = express();
@@ -203,7 +203,7 @@ function scanInjectableClassesMetadata() {
 
 function createObjectInstance(classMetadata: ClassMetadata) {
     if (!isInjectableClass(classMetadata.clazz)) {
-        throw new ObjectInitializeError(
+        throw new ObjectInitializationError(
             `Class "${classMetadata.clazz.name}" is not injectable.`,
         );
     }
@@ -339,9 +339,8 @@ async function buildExpressRouteHandler(
 
             return res.send(result);
         } catch (err: any) {
-            next(
-                new ServiceError(err.message, err.status, err.stack, requestId),
-            );
+            err.requestId = requestId;
+            next(err);
         }
     };
 }
