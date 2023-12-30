@@ -56,12 +56,14 @@ export type RouteClassMetadata = {
 };
 
 export type ParamMetadata = {
-    name?: string;
-    index: number;
+    routeParamName?: string;
+    methodParamType: any; // TODO: check for is required?
+    methodParamIndex: number;
 };
 
 export function Controller(prefix?: string): ClassDecorator {
-    const routePrefix = prefix == "/" || !prefix ? "" : cutRoutePath(prefix);
+    const routePrefix =
+        prefix == "/" || prefix === undefined ? "" : cutRoutePath(prefix);
     const routeClassMetadata: RouteClassMetadata = { routePrefix };
 
     return function (target: object) {
@@ -76,10 +78,10 @@ export const Patch = createRouteMethodDecorator("patch");
 export const Put = createRouteMethodDecorator("put");
 export const Delete = createRouteMethodDecorator("delete");
 
-export const Query = createParamDecorator(KEY_ROUTE_QUERY);
-export const Param = createParamDecorator(KEY_ROUTE_PARAMS);
-export const Headers = createParamDecorator(KEY_ROUTE_HEADERS);
-export const Body = createParamDecorator(KEY_ROUTE_BODY);
+export const Query = createRouteParamDecorator(KEY_ROUTE_QUERY);
+export const Param = createRouteParamDecorator(KEY_ROUTE_PARAMS);
+export const Headers = createRouteParamDecorator(KEY_ROUTE_HEADERS);
+export const Body = createRouteParamDecorator(KEY_ROUTE_BODY);
 
 export function StatusCode(code: number) {
     return function (target: any, propertyKey: string, _: PropertyDescriptor) {
@@ -110,24 +112,33 @@ function createRouteMethodDecorator(method: RouteMethod) {
             key: string | symbol,
             descriptor: PropertyDescriptor,
         ) {
-            path = path == "" || !path ? "/" : cutRoutePath(path);
+            path = path == "" || path === undefined ? "/" : cutRoutePath(path);
             const routeMetadata: RouteMetadata = { path, method, middlewares };
             Reflect.defineMetadata(KEY_ROUTE_PATH, routeMetadata, target, key);
         };
     };
 }
 
-function createParamDecorator(metadataKey: string) {
+function createRouteParamDecorator(metadataKey: string) {
     return function (name?: string): ParameterDecorator {
         return function (
             target: object,
             key: string | symbol | undefined,
             index: number,
         ) {
-            const paramMetadata: ParamMetadata = { name, index };
-            if (key !== undefined) {
-                extendMetadata(metadataKey, paramMetadata, target, key);
+            // Not used for constructor
+            if (key === undefined) {
+                return;
             }
+
+            const paramTypes: any[] =
+                Reflect.getMetadata("design:paramtypes", target, key) ?? [];
+            const paramMetadata: ParamMetadata = {
+                routeParamName: name,
+                methodParamType: paramTypes[index], // TODO: Check for is required?
+                methodParamIndex: index,
+            };
+            extendMetadata(metadataKey, paramMetadata, target, key);
         };
     };
 }

@@ -305,20 +305,19 @@ async function initializeHandler(
             map.set(KEY_ROUTE_BODY, "body");
 
             for (const [routeKey, routeValue] of map) {
-                const paramMetadata: ParamMetadata[] =
+                (
                     Reflect.getMetadata(
                         routeKey,
                         classMetadata.clazz.prototype,
                         methodName,
-                    ) ?? [];
-                paramMetadata.forEach(it => {
-                    if (it.name !== undefined) {
-                        methodArgs[it.index] = (req as any)[routeValue][
-                            it.name
-                        ];
-                    } else {
-                        methodArgs[it.index] = (req as any)[routeValue];
-                    }
+                    ) ?? []
+                ).forEach((paramMetadata: ParamMetadata) => {
+                    methodArgs[paramMetadata.methodParamIndex] =
+                        paramMetadata.routeParamName !== undefined
+                            ? (req as any)[routeValue][
+                                  paramMetadata.routeParamName
+                              ]
+                            : (req as any)[routeValue];
                 });
             }
 
@@ -368,13 +367,13 @@ async function checkAuthorization(
     }
 
     const authorization = req.headers.authorization;
-    if (!authorization) {
-        throw new ServiceError(`header "authorization" is not found.`);
+    if (authorization === undefined) {
+        throw new ServiceError(` The header "authorization" is not found.`);
     }
 
     // Check from cache and validate token
     const token = authorization.replace("Bearer ", "");
-    if (!token) {
+    if (token === undefined) {
         throw new ServiceError(`Authorization token is not found.`);
     }
     const payload = Jwt.parse(token);
@@ -382,7 +381,7 @@ async function checkAuthorization(
     if (payload === null) {
         throw new ServiceError(`Parsed payload is null.`);
     }
-    if (typeof payload === "string" || !payload.userId) {
+    if (typeof payload === "string" || payload.userId === undefined) {
         throw new ServiceError(
             `Cannot parse \`userId\` from payload. payload: ${JSON.stringify(
                 payload,
@@ -394,7 +393,7 @@ async function checkAuthorization(
     const userToken = await CacheClient.get(
         Commons.generateCacheKey(KEY_USER_TOKEN, userId!),
     );
-    if (!userToken) {
+    if (userToken === null) {
         throw new ServiceError(`Please login first.`);
     }
 

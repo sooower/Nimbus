@@ -54,7 +54,7 @@ export class UserService {
             },
         });
 
-        if (!userRecord) {
+        if (userRecord === null) {
             throw new ServiceError("`username` not found.");
         }
 

@@ -20,17 +20,25 @@ function getRedisCacheClient() {
 
 export const CacheClient = {
     async set(key: string, value: any) {
-        return cacheClient.set(key, stringify(value)!);
+        if (stringify(value) !== undefined) {
+            return !!cacheClient.set(key, stringify(value)!);
+        }
+
+        return true;
     },
 
     async setWithTTL(key: string, value: any, ttl = 300) {
-        return cacheClient.set(key, stringify(value)!, "EX", ttl);
+        if (stringify(value) !== undefined) {
+            return !!cacheClient.set(key, stringify(value)!, "EX", ttl);
+        }
+
+        return true;
     },
 
     async setnxWithTTL(key: string, value: string, ttl = 300) {
-        const res = await cacheClient.setnx(key, value);
+        const res = !!(await cacheClient.setnx(key, value));
 
-        if (res !== 1) {
+        if (!res) {
             logger.warn(`Key ${key} already exists.`);
 
             return false;
@@ -55,6 +63,6 @@ export const CacheClient = {
     },
 
     async quit() {
-        await cacheClient.quit();
+        return !!(await cacheClient.quit());
     },
 };
