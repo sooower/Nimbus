@@ -8,6 +8,7 @@ export const KEY_ROUTE_BODY = "route:body";
 export const KEY_ROUTE_CTX = "route:context";
 
 export const KEY_INJECTABLE = "injectable";
+export const KEY_LAZY_INJECT = "lazyInject";
 
 export const KEY_NONE_AUTH = "noneAuth";
 export const KEY_USER_TOKEN = "userToken";

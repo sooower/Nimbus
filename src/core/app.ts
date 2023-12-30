@@ -12,6 +12,7 @@ import {
 } from "@/core/decorators/routeDecorator";
 import { corsMiddleware } from "@/core/middlewares/corsMiddleware";
 import {
+    KEY_LAZY_INJECT,
     KEY_INJECTABLE,
     KEY_NONE_AUTH,
     KEY_ROUTE_BODY,
@@ -37,11 +38,12 @@ import {
     ServiceError,
 } from "@/core/errors";
 import { Jwt } from "@/core/components/jwt";
+import { ConstructorParamMetadata } from "@/core/decorators/injectionDecorator";
 
 const engine: Express = express();
 const classMetadataContainer: Map<string, ClassMetadata> = new Map();
-const instantiatedSingletonObjects: Map<string, any> = new Map();
-const initializedSingletonObjects: Map<string, any> = new Map();
+const earlySingletonObjects: Map<string, any> = new Map();
+const singletonObjects: Map<string, any> = new Map();
 
 export const Application = {
     async run() {
@@ -131,11 +133,7 @@ async function initializeRoutes() {
             router[routeMetadata.method](
                 routeMetadata.path,
                 ...routeMetadata.middlewares,
-                await buildExpressRouteHandler(
-                    classMetadata,
-                    methodName,
-                    methodArgs,
-                ),
+                await initializeHandler(classMetadata, methodName, methodArgs),
             );
 
             const routeClassMetadata: RouteClassMetadata | undefined =
@@ -182,18 +180,29 @@ function scanInjectableClassesMetadata() {
 
             const classMetadata: ClassMetadata = {
                 clazz: target,
-                constructorParamTypesMetadata: [],
+                ctorParamClassesMetadata: [],
                 methodArgsMetadata: new Map(),
             };
 
-            const constructorParamTypes: any[] =
+            const ctorParamClasses: any[] =
                 Reflect.getMetadata("design:paramtypes", target) ?? [];
-            for (const paramType of constructorParamTypes) {
-                // TODO: Maybe there has a circular dependency, now ignore this case
-                if (paramType !== undefined) {
-                    classMetadata.constructorParamTypesMetadata.push(paramType);
+            ctorParamClasses.forEach((clazz, index) => {
+                // Resolve circular dependency
+                if (clazz === undefined) {
+                    const ctorParamsMetadata: ConstructorParamMetadata[] =
+                        Reflect.getMetadata(KEY_LAZY_INJECT, target) ?? [];
+
+                    const fn = ctorParamsMetadata[index].instantiateFn;
+                    if (fn === undefined) {
+                        throw new ObjectInitializationError(
+                            `Instantiate function of class "${clazz}" is not found.`,
+                        );
+                    }
+
+                    clazz = fn();
                 }
-            }
+                classMetadata.ctorParamClassesMetadata.push(clazz);
+            });
 
             Object.getOwnPropertyNames(target.prototype)
                 .filter(it => it !== "constructor")
@@ -214,31 +223,26 @@ function createObjectInstance(classMetadata: ClassMetadata) {
     }
 
     const instance = new classMetadata.clazz();
-    instantiatedSingletonObjects.set(classMetadata.clazz.name, instance);
+    earlySingletonObjects.set(classMetadata.clazz.name, instance);
 
     populateProperties(instance, classMetadata);
 
-    initializedSingletonObjects.set(classMetadata.clazz.name, instance);
-    instantiatedSingletonObjects.delete(classMetadata.clazz.name);
+    singletonObjects.set(classMetadata.clazz.name, instance);
+    earlySingletonObjects.delete(classMetadata.clazz.name);
 }
 
 function populateProperties(instance: any, classMetadata: ClassMetadata) {
-    if (classMetadata.constructorParamTypesMetadata === undefined) {
+    if (classMetadata.ctorParamClassesMetadata === undefined) {
         return;
     }
 
     const instanceParamNames = Reflect.ownKeys(instance);
-    for (
-        let i = 0;
-        i < classMetadata.constructorParamTypesMetadata.length;
-        i++
-    ) {
-        const propertyClass = classMetadata.constructorParamTypesMetadata[i];
+    for (let i = 0; i < classMetadata.ctorParamClassesMetadata.length; i++) {
+        const propertyClass = classMetadata.ctorParamClassesMetadata[i];
         const propertyName = instanceParamNames[i];
 
         if (instance[propertyName] === undefined) {
-            const propertyInstance = getObjectInstance(propertyClass.name);
-            if (propertyInstance === undefined) {
+            if (getObjectInstance(propertyClass.name) === undefined) {
                 const propertyClassMetadata = classMetadataContainer.get(
                     propertyClass.name,
                 );
@@ -248,21 +252,21 @@ function populateProperties(instance: any, classMetadata: ClassMetadata) {
                     continue;
                 }
                 createObjectInstance(propertyClassMetadata);
-            } else {
-                instance[propertyName] = propertyInstance;
             }
+
+            instance[propertyName] = getObjectInstance(propertyClass.name);
         }
     }
 }
 
 function getObjectInstance(className: string) {
     let instance: any;
-    instance = initializedSingletonObjects.get(className);
+    instance = singletonObjects.get(className);
     if (instance !== undefined) {
         return instance;
     }
 
-    instance = instantiatedSingletonObjects.get(className);
+    instance = earlySingletonObjects.get(className);
     if (instance !== undefined) {
         return instance;
     }
@@ -278,7 +282,7 @@ function isInjectableClass(target: any) {
     return Reflect.getMetadata(KEY_INJECTABLE, target) !== undefined;
 }
 
-async function buildExpressRouteHandler(
+async function initializeHandler(
     classMetadata: ClassMetadata,
     methodName: string,
     methodArgs: string[],
@@ -300,7 +304,7 @@ async function buildExpressRouteHandler(
             map.set(KEY_ROUTE_HEADERS, "headers");
             map.set(KEY_ROUTE_BODY, "body");
 
-            for (const [routeKey, routerValue] of map) {
+            for (const [routeKey, routeValue] of map) {
                 const paramMetadata: ParamMetadata[] =
                     Reflect.getMetadata(
                         routeKey,
@@ -308,12 +312,12 @@ async function buildExpressRouteHandler(
                         methodName,
                     ) ?? [];
                 paramMetadata.forEach(it => {
-                    if (it.paramName) {
-                        methodArgs[it.paramIndex] = (req as any)[routerValue][
-                            it.paramName
+                    if (it.name !== undefined) {
+                        methodArgs[it.index] = (req as any)[routeValue][
+                            it.name
                         ];
                     } else {
-                        methodArgs[it.paramIndex] = (req as any)[routerValue];
+                        methodArgs[it.index] = (req as any)[routeValue];
                     }
                 });
             }
@@ -330,9 +334,7 @@ async function buildExpressRouteHandler(
             );
 
             // Get singleton
-            const instance = initializedSingletonObjects.get(
-                classMetadata.clazz.name,
-            );
+            const instance = singletonObjects.get(classMetadata.clazz.name);
 
             // Execute handler method
             const result = await instance[methodName](
@@ -429,7 +431,7 @@ function assignContext(
         requestId,
         userId,
     };
-    methodArgs[ctxMetadata.paramIdx] = ctxMetadata.source
+    methodArgs[ctxMetadata.index] = ctxMetadata.source
         ? ctx[ctxMetadata.source]
         : ctx;
 }

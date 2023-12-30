@@ -22,14 +22,20 @@ export type CtxSource =
 
 export type CtxMetadata = {
     source?: CtxSource;
-    propertyKey: string;
-    paramIdx: number;
+    key: string;
+    index: number;
 };
 
 export type ClassMetadata = {
+    /**
+     * Target class.
+     */
     clazz: any;
 
-    constructorParamTypesMetadata: any[];
+    /**
+     * Constructor parameters class metadata.
+     */
+    ctorParamClassesMetadata: any[];
 
     /**
      * Other member methods args metadata.
@@ -50,15 +56,15 @@ export type RouteClassMetadata = {
 };
 
 export type ParamMetadata = {
-    paramName?: string;
-    paramIndex: number;
+    name?: string;
+    index: number;
 };
 
 export function Controller(prefix?: string): ClassDecorator {
     const routePrefix = prefix == "/" || !prefix ? "" : cutRoutePath(prefix);
     const routeClassMetadata: RouteClassMetadata = { routePrefix };
 
-    return function (target: any) {
+    return function (target: object) {
         Reflect.defineMetadata(KEY_ROUTE_CLASS, routeClassMetadata, target);
         Reflect.defineMetadata(KEY_INJECTABLE, true, target);
     };
@@ -87,48 +93,41 @@ export function StatusCode(code: number) {
 }
 
 export function Ctx(source?: CtxSource) {
-    return function (target: object, propertyKey: string, paramIdx: number) {
+    return function (target: object, key: string, index: number) {
         // Collect Context metadata
-        const ctxMetadata: CtxMetadata = {
-            source,
-            propertyKey,
-            paramIdx,
-        };
-        Reflect.defineMetadata(KEY_ROUTE_CTX, ctxMetadata, target, propertyKey);
+        const ctxMetadata: CtxMetadata = { source, key, index };
+        Reflect.defineMetadata(KEY_ROUTE_CTX, ctxMetadata, target, key);
     };
 }
 
 function createRouteMethodDecorator(method: RouteMethod) {
-    return function (path?: string, ...middlewares: MiddlewareFunc[]) {
-        return function (target: object, propertyKey: string) {
+    return function (
+        path?: string,
+        ...middlewares: MiddlewareFunc[]
+    ): MethodDecorator {
+        return function (
+            target: object,
+            key: string | symbol,
+            descriptor: PropertyDescriptor,
+        ) {
             path = path == "" || !path ? "/" : cutRoutePath(path);
-            const routeMetadata: RouteMetadata = {
-                path,
-                method,
-                middlewares,
-            };
-            Reflect.defineMetadata(
-                KEY_ROUTE_PATH,
-                routeMetadata,
-                target,
-                propertyKey,
-            );
+            const routeMetadata: RouteMetadata = { path, method, middlewares };
+            Reflect.defineMetadata(KEY_ROUTE_PATH, routeMetadata, target, key);
         };
     };
 }
 
 function createParamDecorator(metadataKey: string) {
-    return function (paramName?: string) {
+    return function (name?: string): ParameterDecorator {
         return function (
             target: object,
-            propertyKey: string,
-            paramIndex: number,
+            key: string | symbol | undefined,
+            index: number,
         ) {
-            const paramMetadata: ParamMetadata = {
-                paramName,
-                paramIndex,
-            };
-            extendMetadata(metadataKey, paramMetadata, target, propertyKey);
+            const paramMetadata: ParamMetadata = { name, index };
+            if (key !== undefined) {
+                extendMetadata(metadataKey, paramMetadata, target, key);
+            }
         };
     };
 }
@@ -137,16 +136,11 @@ function extendMetadata(
     metadataKey: string,
     value: any,
     target: any,
-    propertyKey: string,
+    key: string | symbol,
 ) {
     const originValues: any[] =
-        Reflect.getMetadata(metadataKey, target, propertyKey) ?? [];
-    Reflect.defineMetadata(
-        metadataKey,
-        [...originValues, value],
-        target,
-        propertyKey,
-    );
+        Reflect.getMetadata(metadataKey, target, key) ?? [];
+    Reflect.defineMetadata(metadataKey, [...originValues, value], target, key);
 }
 
 function cutRoutePath(str: string): string {

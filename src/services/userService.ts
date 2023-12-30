@@ -1,4 +1,3 @@
-import { Service } from "@/core/decorators/serviceDecorator";
 import { ServiceError } from "@/core/errors";
 import crypto from "crypto";
 import { User } from "@/entities/user";
@@ -8,8 +7,9 @@ import { DS } from "@/core/components/dataSource";
 import { Jwt } from "@/core/components/jwt";
 import { CacheClient } from "@/core/components/cacheClient";
 import { KEY_USER_TOKEN } from "@/core/constants";
+import { Injectable } from "@/core/decorators/injectionDecorator";
 
-@Service
+@Injectable()
 export class UserService {
     private userRepository = DS.getRepository(User);
 

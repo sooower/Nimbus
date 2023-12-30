@@ -13,10 +13,10 @@ type CacheRemoveOptions = {
     key: string;
 };
 
-export function Cacheable(options: CacheSetOptions) {
+export function Cacheable(options: CacheSetOptions): MethodDecorator {
     return function (
-        target: any,
-        propertyKey: string,
+        target: object,
+        propertyKey: string | symbol,
         descriptor: PropertyDescriptor,
     ) {
         const originalMethod = descriptor.value;
@@ -55,10 +55,10 @@ export function Cacheable(options: CacheSetOptions) {
     };
 }
 
-export function CachePut(options: CacheSetOptions) {
+export function CachePut(options: CacheSetOptions): MethodDecorator {
     return function (
-        target: any,
-        propertyKey: string,
+        target: object,
+        propertyKey: string | symbol,
         descriptor: PropertyDescriptor,
     ) {
         const originalMethod = descriptor.value;
@@ -90,10 +90,10 @@ export function CachePut(options: CacheSetOptions) {
     };
 }
 
-export function CacheEvict(options: CacheRemoveOptions) {
+export function CacheEvict(options: CacheRemoveOptions): MethodDecorator {
     return function (
-        target: any,
-        propertyKey: string,
+        target: object,
+        key: string | symbol,
         descriptor: PropertyDescriptor,
     ) {
         const originalMethod = descriptor.value;
