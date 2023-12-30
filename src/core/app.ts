@@ -31,7 +31,11 @@ import { DS } from "@/core/components/dataSource";
 import { CacheClient } from "@/core/components/cacheClient";
 import { Commons, Objects } from "@/core/utils";
 import { Context, Next, Req, Res } from "@/core/types";
-import { ObjectInitializationError, ServiceError } from "@/core/errors";
+import {
+    ObjectInitializationError,
+    RouteInitializationError,
+    ServiceError,
+} from "@/core/errors";
 import { Jwt } from "@/core/components/jwt";
 
 const engine: Express = express();
@@ -112,14 +116,15 @@ async function initializeRoutes() {
             methodName,
             methodArgs,
         ] of classMetadata.methodArgsMetadata) {
-            const routeMetadata: RouteMetadata = Reflect.getMetadata(
-                KEY_ROUTE_PATH,
-                classMetadata.clazz.prototype,
-                methodName,
-            );
+            const routeMetadata: RouteMetadata | undefined =
+                Reflect.getMetadata(
+                    KEY_ROUTE_PATH,
+                    classMetadata.clazz.prototype,
+                    methodName,
+                );
 
             // Maybe some methods is not used for route
-            if (!routeMetadata) {
+            if (routeMetadata === undefined) {
                 continue;
             }
 
@@ -133,10 +138,14 @@ async function initializeRoutes() {
                 ),
             );
 
-            const routeClassMetadata: RouteClassMetadata = Reflect.getMetadata(
-                KEY_ROUTE_CLASS,
-                classMetadata.clazz,
-            );
+            const routeClassMetadata: RouteClassMetadata | undefined =
+                Reflect.getMetadata(KEY_ROUTE_CLASS, classMetadata.clazz);
+            if (routeClassMetadata === undefined) {
+                throw new RouteInitializationError(
+                    `Rout class metadata is undefined.`,
+                );
+            }
+
             engine.use(routeClassMetadata.routePrefix, router);
 
             logger.debug(
@@ -177,16 +186,12 @@ function scanInjectableClassesMetadata() {
                 methodArgsMetadata: new Map(),
             };
 
-            const constructorParamTypes: any[] | undefined =
-                Reflect.getMetadata("design:paramtypes", target);
-            if (constructorParamTypes !== undefined) {
-                for (const paramType of constructorParamTypes) {
-                    // TODO: Maybe there has a circular dependency, now ignore this case
-                    if (paramType !== undefined) {
-                        classMetadata.constructorParamTypesMetadata.push(
-                            paramType,
-                        );
-                    }
+            const constructorParamTypes: any[] =
+                Reflect.getMetadata("design:paramtypes", target) ?? [];
+            for (const paramType of constructorParamTypes) {
+                // TODO: Maybe there has a circular dependency, now ignore this case
+                if (paramType !== undefined) {
+                    classMetadata.constructorParamTypesMetadata.push(paramType);
                 }
             }
 
@@ -296,13 +301,13 @@ async function buildExpressRouteHandler(
             map.set(KEY_ROUTE_BODY, "body");
 
             for (const [routeKey, routerValue] of map) {
-                const paramMetadata: ParamMetadata[] | undefined =
+                const paramMetadata: ParamMetadata[] =
                     Reflect.getMetadata(
                         routeKey,
                         classMetadata.clazz.prototype,
                         methodName,
-                    );
-                (paramMetadata ?? []).forEach(it => {
+                    ) ?? [];
+                paramMetadata.forEach(it => {
                     if (it.paramName) {
                         methodArgs[it.paramIndex] = (req as any)[routerValue][
                             it.paramName
@@ -350,11 +355,12 @@ async function checkAuthorization(
     classMetadata: ClassMetadata,
     methodName: string,
 ) {
-    const nonAuth: boolean = Reflect.getMetadata(
-        KEY_NONE_AUTH,
-        classMetadata.clazz.prototype,
-        methodName,
-    );
+    const nonAuth: boolean =
+        Reflect.getMetadata(
+            KEY_NONE_AUTH,
+            classMetadata.clazz.prototype,
+            methodName,
+        ) ?? false;
     if (nonAuth) {
         return;
     }
@@ -404,26 +410,28 @@ function assignContext(
     userId: string | undefined,
     requestId: string,
 ) {
-    const ctxMetadata: CtxMetadata = Reflect.getMetadata(
+    const ctxMetadata: CtxMetadata | undefined = Reflect.getMetadata(
         KEY_ROUTE_CTX,
         classMetadata.clazz.prototype,
         methodName,
     );
-    if (ctxMetadata) {
-        const ctx: Context = {
-            req,
-            res,
-            query: req.query,
-            params: req.params,
-            headers: req.headers,
-            body: req.body,
-            requestId,
-            userId,
-        };
-        methodArgs[ctxMetadata.paramIdx] = ctxMetadata.source
-            ? ctx[ctxMetadata.source]
-            : ctx;
+    if (ctxMetadata === undefined) {
+        return;
     }
+
+    const ctx: Context = {
+        req,
+        res,
+        query: req.query,
+        params: req.params,
+        headers: req.headers,
+        body: req.body,
+        requestId,
+        userId,
+    };
+    methodArgs[ctxMetadata.paramIdx] = ctxMetadata.source
+        ? ctx[ctxMetadata.source]
+        : ctx;
 }
 
 function assignStatusCode(
@@ -431,14 +439,12 @@ function assignStatusCode(
     classMetadata: ClassMetadata,
     methodName: string,
 ) {
-    const status = Reflect.getMetadata(
-        KEY_ROUTE_STATUS_CODE,
-        classMetadata.clazz.prototype,
-        methodName,
-    );
-    if (status) {
-        res.statusCode = status;
-    }
+    res.statusCode =
+        Reflect.getMetadata(
+            KEY_ROUTE_STATUS_CODE,
+            classMetadata.clazz.prototype,
+            methodName,
+        ) ?? 200;
 }
 
 function generateRequestId(length: number = 7): string {

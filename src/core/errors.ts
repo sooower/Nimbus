@@ -21,3 +21,12 @@ export class ObjectInitializationError extends Error {
         this.message = message;
     }
 }
+
+export class RouteInitializationError extends Error {
+    constructor(message: string) {
+        super();
+
+        this.name = this.constructor.name;
+        this.message = message;
+    }
+}
