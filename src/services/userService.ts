@@ -1,8 +1,8 @@
 import { ServiceError } from "@/core/errors";
 import crypto from "crypto";
-import { User } from "@/entities/user";
+import { User } from "@/entities/accounts/user";
 import { Commons } from "@/core/utils";
-import { UserLoginDto, UserRegisterDto } from "@/models/user";
+import { UserLoginDto, UserRegisterDto } from "@/models/accounts/user";
 import { DS } from "@/core/components/dataSource";
 import { Jwt } from "@/core/components/jwt";
 import { CacheClient } from "@/core/components/cacheClient";
@@ -59,10 +59,7 @@ export class UserService {
 
         // Jwt signature
         const token = Jwt.sign({ userId: userRecord.id });
-        await CacheClient.setWithTTL(
-            Commons.generateCacheKey(KEY_USER_TOKEN, userRecord.id),
-            token,
-        );
+        await CacheClient.set(Commons.generateCacheKey(KEY_USER_TOKEN, userRecord.id), token);
 
         return token;
     }

@@ -1,12 +1,13 @@
-import { Body, Controller, Param, Post, Put } from "@/core/decorators/routeDecorator";
+import { Body, Controller, Delete, Get, Param, Post, Put } from "@/core/decorators/routeDecorator";
 import { CacheClient } from "@/core/components/cacheClient";
 import { ServiceError } from "@/core/errors";
 import { Commons } from "@/core/utils";
-import { UserLoginDto, UserRegisterDto } from "@/models/user";
+import { UserLoginDto, UserRegisterDto } from "@/models/accounts/user";
 import { NonAuth } from "@/core/decorators/authorizationDecorator";
 import { KEY_USER_TOKEN } from "@/core/constants";
 import { UserService } from "@/services/userService";
 import { LazyInject } from "@/core/decorators/injectionDecorator";
+import { Permis } from "@/core/decorators/permissionDecorator";
 
 @Controller("/users")
 export class UserController {
@@ -36,5 +37,44 @@ export class UserController {
         }
 
         return {};
+    }
+
+    @Get()
+    @Permis(["user:read"])
+    async getUsers() {
+        return "getUsers";
+    }
+
+    @Get("/:id")
+    @Permis(["user:read"])
+    async getUser(@Param("id") id: string) {
+        return "getUser" + id;
+    }
+
+    @Put("/:id")
+    @Permis(["user:update"])
+    async updateUser(@Param("id") id: string) {
+        return "updateUser" + id;
+    }
+
+    @Delete()
+    @Permis(["user:delete"])
+    async deleteUsers(@Body() userIds: string[]) {
+        return `deleteUsers ${userIds}`;
+    }
+
+    @Get("/:id/roles")
+    async getUserRoles(@Param("id") userId: string) {
+        return "getUserRoles" + userId;
+    }
+
+    @Post("/:id/roles")
+    async addUserRoles(@Param("id") userId: string) {
+        return "addUserRoles";
+    }
+
+    @Delete("/:id/roles")
+    async removeUserRoles(@Param("id") userId: string) {
+        return "removeUserRoles";
     }
 }

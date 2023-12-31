@@ -15,6 +15,7 @@ import {
     KEY_INJECTABLE,
     KEY_LAZY_INJECT,
     KEY_NONE_AUTH,
+    KEY_PERMISSION,
     KEY_ROUTE_BODY,
     KEY_ROUTE_CLASS,
     KEY_ROUTE_CTX,
@@ -32,9 +33,16 @@ import { DS } from "@/core/components/dataSource";
 import { CacheClient } from "@/core/components/cacheClient";
 import { Commons, Objects } from "@/core/utils";
 import { Context, Next, Req, Res } from "@/core/types";
-import { ObjectInitializationError, RouteInitializationError, ServiceError } from "@/core/errors";
+import {
+    AuthenticationError,
+    AuthorizationError,
+    ObjectInitializationError,
+    RouteInitializationError,
+} from "@/core/errors";
 import { Jwt } from "@/core/components/jwt";
 import { ConstructorParamMetadata } from "@/core/decorators/injectionDecorator";
+import { Permission } from "@/entities/accounts/permission";
+import { Role } from "@/entities/accounts/role";
 
 const engine: Express = express();
 const classMetadataContainer: Map<string, ClassMetadata> = new Map();
@@ -275,8 +283,13 @@ async function initializeHandler(
         try {
             const start = Date.now();
 
-            // Check authorization
-            const userId = await checkAuthorization(req, classMetadata, methodName);
+            // Check for authorization
+            const userId = await checkForAuthorization(req, classMetadata, methodName);
+
+            // Check for authentication
+            if (userId !== undefined) {
+                await checkForAuthentication(classMetadata, methodName, userId);
+            }
 
             // Assign method args
             const map = new Map<string, string>();
@@ -323,7 +336,7 @@ async function initializeHandler(
     };
 }
 
-async function checkAuthorization(req: Req, classMetadata: ClassMetadata, methodName: string) {
+async function checkForAuthorization(req: Req, classMetadata: ClassMetadata, methodName: string) {
     const nonAuth: boolean =
         Reflect.getMetadata(KEY_NONE_AUTH, classMetadata.clazz.prototype, methodName) ?? false;
     if (nonAuth) {
@@ -332,34 +345,72 @@ async function checkAuthorization(req: Req, classMetadata: ClassMetadata, method
 
     const authorization = req.headers.authorization;
     if (authorization === undefined) {
-        throw new ServiceError(` The header "authorization" is not found.`);
+        throw new AuthorizationError(` The header "authorization" is not found.`);
     }
 
     // Check from cache and validate token
     const token = authorization.replace("Bearer ", "");
     if (token === undefined) {
-        throw new ServiceError(`Authorization token is not found.`);
+        throw new AuthorizationError(`Token is not found.`);
     }
-    const payload = Jwt.parse(token);
 
+    const payload = Jwt.parse(token);
     if (payload === null) {
-        throw new ServiceError(`Parsed payload is null.`);
+        throw new AuthorizationError(`Parsed payload is null.`);
     }
+
     if (typeof payload === "string" || payload.userId === undefined) {
-        throw new ServiceError(
+        throw new AuthorizationError(
             `Cannot parse \`userId\` from payload. payload: ${JSON.stringify(payload)}`,
         );
     }
 
-    const userId = payload.userId;
+    const userId: string = payload.userId;
     const userToken = await CacheClient.get(Commons.generateCacheKey(KEY_USER_TOKEN, userId!));
     if (userToken === null) {
-        throw new ServiceError(`Please login first.`);
+        throw new AuthorizationError(`Please login first.`);
     }
 
     Jwt.verify(token);
 
     return userId;
+}
+
+async function checkForAuthentication(classMetadata: ClassMetadata, key: string, userId: string) {
+    const permissions: string[] =
+        Reflect.getMetadata(KEY_PERMISSION, classMetadata.clazz.prototype, key) ?? [];
+    if (permissions.length === 0) {
+        return;
+    }
+
+    // Do not check for permission if role.ts is admin
+    const roleRecords = await DS.getRepository(Role)
+        .createQueryBuilder("role")
+        .innerJoin("role.ts.users", "user")
+        .where("user.id = :userId", { userId })
+        .select("role.ts.name")
+        .getMany();
+
+    const roles = roleRecords.map(it => it.name);
+    if (roles.includes("admin")) {
+        return;
+    }
+
+    // Check for permissions
+    const permissionRecords = await DS.getRepository(Permission)
+        .createQueryBuilder("permission")
+        .innerJoin("permission.roles", "role")
+        .innerJoin("role.ts.users", "user")
+        .where("user.id = :userId", { userId })
+        .select("permission.name")
+        .getMany();
+
+    const recordPermissions = permissionRecords.map(it => it.name);
+    permissions.forEach(it => {
+        if (!recordPermissions.includes(it)) {
+            throw new AuthenticationError(`Permission denied.`);
+        }
+    });
 }
 
 function assignContext(
@@ -405,5 +456,6 @@ function generateRequestId(length: number = 7): string {
     for (let i = 0; i < length; i++) {
         result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
+
     return result;
 }

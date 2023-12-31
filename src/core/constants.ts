@@ -12,3 +12,4 @@ export const KEY_LAZY_INJECT = "lazyInject";
 
 export const KEY_NONE_AUTH = "noneAuth";
 export const KEY_USER_TOKEN = "userToken";
+export const KEY_PERMISSION = "permission";
