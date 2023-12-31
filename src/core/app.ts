@@ -118,12 +118,6 @@ async function initializeRoutes() {
                 continue;
             }
 
-            router[routeMetadata.method](
-                routeMetadata.path,
-                ...routeMetadata.middlewares,
-                await initializeHandler(classMetadata, methodName, methodArgs),
-            );
-
             const routeClassMetadata: RouteClassMetadata | undefined = Reflect.getMetadata(
                 KEY_ROUTE_CLASS,
                 classMetadata.clazz,
@@ -132,12 +126,16 @@ async function initializeRoutes() {
                 throw new RouteInitializationError(`Rout class metadata is undefined.`);
             }
 
+            router[routeMetadata.method](
+                routeMetadata.path,
+                ...routeMetadata.middlewares,
+                await initializeHandler(classMetadata, methodName, methodArgs),
+            );
+
             engine.use(routeClassMetadata.routePrefix, router);
 
             logger.debug(
-                `Bind route: ${
-                    classMetadata.clazz.name
-                }::${methodName} => ${routeMetadata.method.toUpperCase()} ${
+                `${classMetadata.clazz.name}::${methodName} ${routeMetadata.method.toUpperCase()} ${
                     routeClassMetadata.routePrefix + routeMetadata.path
                 }.`,
             );
@@ -275,6 +273,8 @@ async function initializeHandler(
     return async (req: Req, res: Res, next: Next) => {
         const requestId = generateRequestId();
         try {
+            const start = Date.now();
+
             // Check authorization
             const userId = await checkAuthorization(req, classMetadata, methodName);
 
@@ -309,6 +309,11 @@ async function initializeHandler(
 
             // Assign status code
             assignStatusCode(res, classMetadata, methodName);
+
+            const duration = Date.now() - start;
+            logger.debug(
+                `${req.hostname} ${duration}ms ${req.method.toUpperCase()} ${req.originalUrl}`,
+            );
 
             return res.send(result);
         } catch (err: any) {
