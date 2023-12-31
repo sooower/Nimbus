@@ -8,6 +8,9 @@ dependencies:
   body-parser:
     specifier: ^1.20.2
     version: 1.20.2
+  cron:
+    specifier: ^3.1.6
+    version: 3.1.6
   dayjs:
     specifier: ^1.11.10
     version: 1.11.10
@@ -43,6 +46,9 @@ devDependencies:
   '@types/body-parser':
     specifier: ^1.19.5
     version: 1.19.5
+  '@types/cron':
+    specifier: ^2.4.0
+    version: 2.4.0
   '@types/express':
     specifier: ^4.17.21
     version: 4.17.21
@@ -153,6 +159,13 @@ packages:
       '@types/node': 20.8.6
     dev: true
 
+  /@types/cron@2.4.0:
+    resolution: { integrity: sha512-5bBaAkqvSFBX8JMi/xCofNzG5E594TNsApMz68dLd/sQYz/HGQqgcxGHTRjOvD4G3Y+YF1Oo3S7QdCvKt1KAJQ== }
+    deprecated: This is a stub types definition. cron provides its own type definitions, so you do not need this installed.
+    dependencies:
+      cron: 3.1.6
+    dev: true
+
   /@types/express-serve-static-core@4.17.41:
     resolution: {integrity: sha512-OaJ7XLaelTgrvlZD8/aa0vvvxZdUmlCn6MtWeB7TkiKW70BQLc9XEPpDLPdbo52ZhXUCrznlWdCHWxJWtdyajA==}
     dependencies:
@@ -180,6 +193,9 @@ packages:
     dependencies:
       '@types/node': 20.8.6
     dev: true
+
+  /@types/luxon@3.3.7:
+    resolution: { integrity: sha512-gKc9P2d4g5uYwmy4s/MO/yOVPmvHyvzka1YH6i5dM03UrFofHSmgc0D0ymbDRStFWHusk6cwwF6nhLm/ckBbbQ== }
 
   /@types/mime@1.3.5:
     resolution: {integrity: sha512-/pyBZWSLD2n0dcHE3hq8s8ZvcETHtEuF+3E7XVt0Ig2nvsVQXdghHVcEkIWjy9A0wKfTn97a/PSDYohKIlnP/w==}
@@ -494,6 +510,12 @@ packages:
   /create-require@1.1.1:
     resolution: {integrity: sha512-dcKFX3jn0MpIaXjisoRvexIJVEKzaq7z2rZKxf+MSr9TkdmHmsU4m2lcLojrj/FHl8mk5VxMmYA+ftRkP/3oKQ==}
     dev: true
+
+  /cron@3.1.6:
+    resolution: { integrity: sha512-cvFiQCeVzsA+QPM6fhjBtlKGij7tLLISnTSvFxVdnFGLdz+ZdXN37kNe0i2gefmdD17XuZA6n2uPVwzl4FxW/w== }
+    dependencies:
+      '@types/luxon': 3.3.7
+      luxon: 3.4.4
 
   /cross-spawn@7.0.3:
     resolution: {integrity: sha512-iRDPJKUPVEND7dHPO8rkbOnPpyDygcDFtWjpeWNCgy8WP2rXcxXL8TskReQl6OrB2G7+UJrags1q15Fudc7G6w==}
@@ -1039,6 +1061,10 @@ packages:
     dependencies:
       yallist: 4.0.0
     dev: false
+
+  /luxon@3.4.4:
+    resolution: { integrity: sha512-zobTr7akeGHnv7eBOXcRgMeCP6+uyYsczwmeRCauvpvaAltgNyTbLH/+VaEAPUeWBT+1GuNmz4wC/6jtQzbbVA== }
+    engines: { node: '>=12' }
 
   /make-error@1.3.6:
     resolution: {integrity: sha512-s8UhlNe7vPKomQhC1qFelMokr/Sc3AgNbso3n74mVPA5LTZwkB9NlXf4XPamLxJE8h0gh73rM94xvwRT2CVInw==}
