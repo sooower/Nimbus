@@ -1,10 +1,4 @@
-import {
-    Body,
-    Controller,
-    Param,
-    Post,
-    Put,
-} from "@/core/decorators/routeDecorator";
+import { Body, Controller, Param, Post, Put } from "@/core/decorators/routeDecorator";
 import { CacheClient } from "@/core/components/cacheClient";
 import { ServiceError } from "@/core/errors";
 import { Commons } from "@/core/utils";
@@ -35,9 +29,7 @@ export class UserController {
 
     @Put("/logout/:id")
     async logout(@Param("id") id: string) {
-        const res = await CacheClient.remove(
-            Commons.generateCacheKey(KEY_USER_TOKEN, id),
-        );
+        const res = await CacheClient.remove(Commons.generateCacheKey(KEY_USER_TOKEN, id));
 
         if (!res) {
             throw new ServiceError("Please login first.");

@@ -10,15 +10,11 @@ export const Commons = {
         };
     },
     encryptPassword(password: string, salt: string) {
-        return crypto
-            .pbkdf2Sync(password, salt, 1000, 16, "sha512")
-            .toString("hex");
+        return crypto.pbkdf2Sync(password, salt, 1000, 16, "sha512").toString("hex");
     },
 
     comparePassword(password: string, salt: string, encryptedPassword: string) {
-        const passwordHash = crypto
-            .pbkdf2Sync(password, salt, 1000, 16, "sha512")
-            .toString("hex");
+        const passwordHash = crypto.pbkdf2Sync(password, salt, 1000, 16, "sha512").toString("hex");
 
         return encryptedPassword === passwordHash;
     },
@@ -29,10 +25,7 @@ export const Commons = {
 
     getParamNamesWithIndex(func: Function): Map<string, number> {
         const funcStr: string = func.toString();
-        const argsStr: string = funcStr.substring(
-            funcStr.indexOf("(") + 1,
-            funcStr.indexOf(")"),
-        );
+        const argsStr: string = funcStr.substring(funcStr.indexOf("(") + 1, funcStr.indexOf(")"));
         const argNames: string[] = argsStr.split(",").map(arg => arg.trim());
         const paramMap: Map<string, number> = new Map();
 
@@ -58,9 +51,7 @@ export const Objects = {
      * @param value
      */
     isObject(value: any) {
-        return typeof value === "object"
-            ? value !== null
-            : typeof value === "function";
+        return typeof value === "object" ? value !== null : typeof value === "function";
     },
 
     /**

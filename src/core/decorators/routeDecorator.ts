@@ -11,18 +11,11 @@ import {
     KEY_ROUTE_STATUS_CODE,
 } from "@/core/constants";
 
-export type CtxSource =
-    | "req"
-    | "res"
-    | "requestId"
-    | "query"
-    | "params"
-    | "headers"
-    | "body";
+export type CtxSource = "req" | "res" | "requestId" | "query" | "params" | "headers" | "body";
 
 export type CtxMetadata = {
     source?: CtxSource;
-    key: string;
+    key: string | symbol;
     index: number;
 };
 
@@ -62,11 +55,10 @@ export type ParamMetadata = {
 };
 
 export function Controller(prefix?: string): ClassDecorator {
-    const routePrefix =
-        prefix == "/" || prefix === undefined ? "" : cutRoutePath(prefix);
+    const routePrefix = prefix == "/" || prefix === undefined ? "" : cutRoutePath(prefix);
     const routeClassMetadata: RouteClassMetadata = { routePrefix };
 
-    return function (target: object) {
+    return (target: object) => {
         Reflect.defineMetadata(KEY_ROUTE_CLASS, routeClassMetadata, target);
         Reflect.defineMetadata(KEY_INJECTABLE, true, target);
     };
@@ -83,35 +75,26 @@ export const Param = createRouteParamDecorator(KEY_ROUTE_PARAMS);
 export const Headers = createRouteParamDecorator(KEY_ROUTE_HEADERS);
 export const Body = createRouteParamDecorator(KEY_ROUTE_BODY);
 
-export function StatusCode(code: number) {
-    return function (target: any, propertyKey: string, _: PropertyDescriptor) {
-        Reflect.defineMetadata(
-            KEY_ROUTE_STATUS_CODE,
-            code,
-            target,
-            propertyKey,
-        );
+export function StatusCode(code: number): MethodDecorator {
+    return (target: object, key: string | symbol, descriptor: PropertyDescriptor) => {
+        Reflect.defineMetadata(KEY_ROUTE_STATUS_CODE, code, target, key);
     };
 }
 
-export function Ctx(source?: CtxSource) {
-    return function (target: object, key: string, index: number) {
-        // Collect Context metadata
+export function Ctx(source?: CtxSource): ParameterDecorator {
+    return (target: object, key: string | symbol | undefined, index: number) => {
+        if (key === undefined) {
+            return;
+        }
+
         const ctxMetadata: CtxMetadata = { source, key, index };
         Reflect.defineMetadata(KEY_ROUTE_CTX, ctxMetadata, target, key);
     };
 }
 
 function createRouteMethodDecorator(method: RouteMethod) {
-    return function (
-        path?: string,
-        ...middlewares: MiddlewareFunc[]
-    ): MethodDecorator {
-        return function (
-            target: object,
-            key: string | symbol,
-            descriptor: PropertyDescriptor,
-        ) {
+    return (path?: string, ...middlewares: MiddlewareFunc[]): MethodDecorator => {
+        return (target: object, key: string | symbol, descriptor: PropertyDescriptor) => {
             path = path == "" || path === undefined ? "/" : cutRoutePath(path);
             const routeMetadata: RouteMetadata = { path, method, middlewares };
             Reflect.defineMetadata(KEY_ROUTE_PATH, routeMetadata, target, key);
@@ -120,19 +103,14 @@ function createRouteMethodDecorator(method: RouteMethod) {
 }
 
 function createRouteParamDecorator(metadataKey: string) {
-    return function (name?: string): ParameterDecorator {
-        return function (
-            target: object,
-            key: string | symbol | undefined,
-            index: number,
-        ) {
+    return (name?: string): ParameterDecorator => {
+        return (target: object, key: string | symbol | undefined, index: number) => {
             // Not used for constructor
             if (key === undefined) {
                 return;
             }
 
-            const paramTypes: any[] =
-                Reflect.getMetadata("design:paramtypes", target, key) ?? [];
+            const paramTypes: any[] = Reflect.getMetadata("design:paramtypes", target, key) ?? [];
             const paramMetadata: ParamMetadata = {
                 routeParamName: name,
                 methodParamType: paramTypes[index], // TODO: Check for is required?
@@ -143,14 +121,8 @@ function createRouteParamDecorator(metadataKey: string) {
     };
 }
 
-function extendMetadata(
-    metadataKey: string,
-    value: any,
-    target: any,
-    key: string | symbol,
-) {
-    const originValues: any[] =
-        Reflect.getMetadata(metadataKey, target, key) ?? [];
+function extendMetadata(metadataKey: string, value: any, target: any, key: string | symbol) {
+    const originValues: any[] = Reflect.getMetadata(metadataKey, target, key) ?? [];
     Reflect.defineMetadata(metadataKey, [...originValues, value], target, key);
 }
 

@@ -12,8 +12,8 @@ import {
 } from "@/core/decorators/routeDecorator";
 import { corsMiddleware } from "@/core/middlewares/corsMiddleware";
 import {
-    KEY_LAZY_INJECT,
     KEY_INJECTABLE,
+    KEY_LAZY_INJECT,
     KEY_NONE_AUTH,
     KEY_ROUTE_BODY,
     KEY_ROUTE_CLASS,
@@ -32,11 +32,7 @@ import { DS } from "@/core/components/dataSource";
 import { CacheClient } from "@/core/components/cacheClient";
 import { Commons, Objects } from "@/core/utils";
 import { Context, Next, Req, Res } from "@/core/types";
-import {
-    ObjectInitializationError,
-    RouteInitializationError,
-    ServiceError,
-} from "@/core/errors";
+import { ObjectInitializationError, RouteInitializationError, ServiceError } from "@/core/errors";
 import { Jwt } from "@/core/components/jwt";
 import { ConstructorParamMetadata } from "@/core/decorators/injectionDecorator";
 
@@ -87,9 +83,7 @@ async function onReady() {
         await DS.initialize();
         logger.info("Data Source initialized.");
     } catch (err) {
-        throw new Error(
-            `Failed when executing lifecycle event "onReady". ${err}.`,
-        );
+        throw new Error(`Failed when executing lifecycle event "onReady". ${err}.`);
     }
 }
 
@@ -104,9 +98,7 @@ async function onClose() {
         await CacheClient.quit();
         logger.info("Cache client closed.");
     } catch (err) {
-        throw new Error(
-            `Failed when executing lifecycle event "onClose". ${err}.`,
-        );
+        throw new Error(`Failed when executing lifecycle event "onClose". ${err}.`);
     }
 }
 
@@ -114,16 +106,12 @@ async function initializeRoutes() {
     for (const classMetadata of classMetadataContainer.values()) {
         const router = Router();
 
-        for (const [
-            methodName,
-            methodArgs,
-        ] of classMetadata.methodArgsMetadata) {
-            const routeMetadata: RouteMetadata | undefined =
-                Reflect.getMetadata(
-                    KEY_ROUTE_PATH,
-                    classMetadata.clazz.prototype,
-                    methodName,
-                );
+        for (const [methodName, methodArgs] of classMetadata.methodArgsMetadata) {
+            const routeMetadata: RouteMetadata | undefined = Reflect.getMetadata(
+                KEY_ROUTE_PATH,
+                classMetadata.clazz.prototype,
+                methodName,
+            );
 
             // Maybe some methods is not used for route
             if (routeMetadata === undefined) {
@@ -136,12 +124,12 @@ async function initializeRoutes() {
                 await initializeHandler(classMetadata, methodName, methodArgs),
             );
 
-            const routeClassMetadata: RouteClassMetadata | undefined =
-                Reflect.getMetadata(KEY_ROUTE_CLASS, classMetadata.clazz);
+            const routeClassMetadata: RouteClassMetadata | undefined = Reflect.getMetadata(
+                KEY_ROUTE_CLASS,
+                classMetadata.clazz,
+            );
             if (routeClassMetadata === undefined) {
-                throw new RouteInitializationError(
-                    `Rout class metadata is undefined.`,
-                );
+                throw new RouteInitializationError(`Rout class metadata is undefined.`);
             }
 
             engine.use(routeClassMetadata.routePrefix, router);
@@ -184,8 +172,7 @@ function scanInjectableClassesMetadata() {
                 methodArgsMetadata: new Map(),
             };
 
-            const ctorParamClasses: any[] =
-                Reflect.getMetadata("design:paramtypes", target) ?? [];
+            const ctorParamClasses: any[] = Reflect.getMetadata("design:paramtypes", target) ?? [];
             ctorParamClasses.forEach((clazz, index) => {
                 // Resolve circular dependency
                 if (clazz === undefined) {
@@ -243,9 +230,7 @@ function populateProperties(instance: any, classMetadata: ClassMetadata) {
 
         if (instance[propertyName] === undefined) {
             if (getObjectInstance(propertyClass.name) === undefined) {
-                const propertyClassMetadata = classMetadataContainer.get(
-                    propertyClass.name,
-                );
+                const propertyClassMetadata = classMetadataContainer.get(propertyClass.name);
 
                 // Maybe some params not need to inject
                 if (propertyClassMetadata === undefined) {
@@ -291,11 +276,7 @@ async function initializeHandler(
         const requestId = generateRequestId();
         try {
             // Check authorization
-            const userId = await checkAuthorization(
-                req,
-                classMetadata,
-                methodName,
-            );
+            const userId = await checkAuthorization(req, classMetadata, methodName);
 
             // Assign method args
             const map = new Map<string, string>();
@@ -306,31 +287,17 @@ async function initializeHandler(
 
             for (const [routeKey, routeValue] of map) {
                 (
-                    Reflect.getMetadata(
-                        routeKey,
-                        classMetadata.clazz.prototype,
-                        methodName,
-                    ) ?? []
+                    Reflect.getMetadata(routeKey, classMetadata.clazz.prototype, methodName) ?? []
                 ).forEach((paramMetadata: ParamMetadata) => {
                     methodArgs[paramMetadata.methodParamIndex] =
                         paramMetadata.routeParamName !== undefined
-                            ? (req as any)[routeValue][
-                                  paramMetadata.routeParamName
-                              ]
+                            ? (req as any)[routeValue][paramMetadata.routeParamName]
                             : (req as any)[routeValue];
                 });
             }
 
             // Assign context
-            assignContext(
-                req,
-                res,
-                classMetadata,
-                methodName,
-                methodArgs,
-                userId,
-                requestId,
-            );
+            assignContext(req, res, classMetadata, methodName, methodArgs, userId, requestId);
 
             // Get singleton
             const instance = singletonObjects.get(classMetadata.clazz.name);
@@ -351,17 +318,9 @@ async function initializeHandler(
     };
 }
 
-async function checkAuthorization(
-    req: Req,
-    classMetadata: ClassMetadata,
-    methodName: string,
-) {
+async function checkAuthorization(req: Req, classMetadata: ClassMetadata, methodName: string) {
     const nonAuth: boolean =
-        Reflect.getMetadata(
-            KEY_NONE_AUTH,
-            classMetadata.clazz.prototype,
-            methodName,
-        ) ?? false;
+        Reflect.getMetadata(KEY_NONE_AUTH, classMetadata.clazz.prototype, methodName) ?? false;
     if (nonAuth) {
         return;
     }
@@ -383,16 +342,12 @@ async function checkAuthorization(
     }
     if (typeof payload === "string" || payload.userId === undefined) {
         throw new ServiceError(
-            `Cannot parse \`userId\` from payload. payload: ${JSON.stringify(
-                payload,
-            )}`,
+            `Cannot parse \`userId\` from payload. payload: ${JSON.stringify(payload)}`,
         );
     }
 
     const userId = payload.userId;
-    const userToken = await CacheClient.get(
-        Commons.generateCacheKey(KEY_USER_TOKEN, userId!),
-    );
+    const userToken = await CacheClient.get(Commons.generateCacheKey(KEY_USER_TOKEN, userId!));
     if (userToken === null) {
         throw new ServiceError(`Please login first.`);
     }
@@ -430,22 +385,13 @@ function assignContext(
         requestId,
         userId,
     };
-    methodArgs[ctxMetadata.index] = ctxMetadata.source
-        ? ctx[ctxMetadata.source]
-        : ctx;
+    methodArgs[ctxMetadata.index] = ctxMetadata.source ? ctx[ctxMetadata.source] : ctx;
 }
 
-function assignStatusCode(
-    res: Res,
-    classMetadata: ClassMetadata,
-    methodName: string,
-) {
+function assignStatusCode(res: Res, classMetadata: ClassMetadata, methodName: string) {
     res.statusCode =
-        Reflect.getMetadata(
-            KEY_ROUTE_STATUS_CODE,
-            classMetadata.clazz.prototype,
-            methodName,
-        ) ?? 200;
+        Reflect.getMetadata(KEY_ROUTE_STATUS_CODE, classMetadata.clazz.prototype, methodName) ??
+        200;
 }
 
 function generateRequestId(length: number = 7): string {

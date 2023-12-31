@@ -15,9 +15,7 @@ export class UserService {
 
     async register(userRegisterDto: UserRegisterDto) {
         if (userRegisterDto.password !== userRegisterDto.confirmedPassword) {
-            throw new ServiceError(
-                "`password` is not matched with `confirmedPassword`.",
-            );
+            throw new ServiceError("`password` is not matched with `confirmedPassword`.");
         }
 
         const userRecord = await this.userRepository.find({
@@ -37,11 +35,7 @@ export class UserService {
         user.password = Commons.encryptPassword(userRegisterDto.password, salt);
         user.salt = salt;
 
-        const {
-            password,
-            salt: resSalt,
-            ...o
-        } = await this.userRepository.save(user);
+        const { password, salt: resSalt, ...o } = await this.userRepository.save(user);
 
         return o;
     }
@@ -59,13 +53,7 @@ export class UserService {
         }
 
         // Compare password
-        if (
-            !Commons.comparePassword(
-                userLoginDto.password,
-                userRecord.salt,
-                userRecord.password,
-            )
-        ) {
+        if (!Commons.comparePassword(userLoginDto.password, userRecord.salt, userRecord.password)) {
             throw new ServiceError("Password is not matched.");
         }
 

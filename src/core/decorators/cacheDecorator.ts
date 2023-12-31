@@ -14,19 +14,11 @@ type CacheRemoveOptions = {
 };
 
 export function Cacheable(options: CacheSetOptions): MethodDecorator {
-    return function (
-        target: object,
-        propertyKey: string | symbol,
-        descriptor: PropertyDescriptor,
-    ) {
+    return (target: object, key: string | symbol, descriptor: PropertyDescriptor) => {
         const originalMethod = descriptor.value;
 
         descriptor.value = async function (...args: any[]) {
-            let key: string = parseKeyWithMethodsParams(
-                options.key,
-                originalMethod,
-                args,
-            );
+            let key: string = parseKeyWithMethodsParams(options.key, originalMethod, args);
 
             const cacheKey = Commons.generateCacheKey(options.scope, key);
 
@@ -56,11 +48,7 @@ export function Cacheable(options: CacheSetOptions): MethodDecorator {
 }
 
 export function CachePut(options: CacheSetOptions): MethodDecorator {
-    return function (
-        target: object,
-        propertyKey: string | symbol,
-        descriptor: PropertyDescriptor,
-    ) {
+    return (target: object, key: string | symbol, descriptor: PropertyDescriptor) => {
         const originalMethod = descriptor.value;
 
         descriptor.value = async function (...args: any[]) {
@@ -68,11 +56,7 @@ export function CachePut(options: CacheSetOptions): MethodDecorator {
 
             // Cache data
             if (res) {
-                let key = parseKeyWithMethodsParams(
-                    options.key,
-                    originalMethod,
-                    args,
-                );
+                let key = parseKeyWithMethodsParams(options.key, originalMethod, args);
                 const cacheKey = Commons.generateCacheKey(options.scope, key);
 
                 options.ttl > 0
@@ -91,22 +75,14 @@ export function CachePut(options: CacheSetOptions): MethodDecorator {
 }
 
 export function CacheEvict(options: CacheRemoveOptions): MethodDecorator {
-    return function (
-        target: object,
-        key: string | symbol,
-        descriptor: PropertyDescriptor,
-    ) {
+    return (target: object, key: string | symbol, descriptor: PropertyDescriptor) => {
         const originalMethod = descriptor.value;
 
         descriptor.value = async function (...args: any[]) {
             const res = await originalMethod.apply(this, args);
 
             // Remove cache
-            let key = parseKeyWithMethodsParams(
-                options.key,
-                originalMethod,
-                args,
-            );
+            let key = parseKeyWithMethodsParams(options.key, originalMethod, args);
             const cacheKey = Commons.generateCacheKey(options.scope, key);
             if (await CacheClient.has(cacheKey)) {
                 await CacheClient.remove(cacheKey);
@@ -128,11 +104,7 @@ export function CacheEvict(options: CacheRemoveOptions): MethodDecorator {
  * @param methodArgs Cache methods args
  * @returns Key with parsed params value
  */
-function parseKeyWithMethodsParams(
-    originStr: string,
-    method: Function,
-    methodArgs: any[],
-) {
+function parseKeyWithMethodsParams(originStr: string, method: Function, methodArgs: any[]) {
     let res: string = originStr;
 
     // Set cache key with params value
