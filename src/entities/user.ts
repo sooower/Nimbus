@@ -1,17 +1,27 @@
 import { Column, Entity, PrimaryGeneratedColumn } from "typeorm";
-import { Base } from "./base";
+import { Base } from "@/entities/base";
 
 @Entity({ schema: "business" })
 export class User extends Base {
     @PrimaryGeneratedColumn()
-    id!: number;
+    id!: string;
 
     @Column()
-    name!: string;
+    username!: string;
 
     @Column()
+    password!: string;
+
+    @Column()
+    salt!: string;
+
+    @Column({
+        nullable: true,
+    })
     age!: number;
 
-    @Column()
+    @Column({
+        nullable: true,
+    })
     gender!: boolean;
 }

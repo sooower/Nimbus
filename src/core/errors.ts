@@ -1,19 +1,32 @@
 export class ServiceError extends Error {
-    readonly requestId: string;
-    readonly status: number;
-    readonly code: string;
-    readonly message: string;
-
     constructor(
-        requestId: string,
-        status: number,
-        code: string,
         message: string,
+        public status: number = 400,
+        public requestId?: string,
     ) {
         super();
-        this.requestId = requestId;
+
+        this.name = this.constructor.name;
+        this.message = message;
         this.status = status;
-        this.code = code;
+        this.requestId = requestId;
+    }
+}
+
+export class ObjectInitializationError extends Error {
+    constructor(message: string) {
+        super();
+
+        this.name = this.constructor.name;
+        this.message = message;
+    }
+}
+
+export class RouteInitializationError extends Error {
+    constructor(message: string) {
+        super();
+
+        this.name = this.constructor.name;
         this.message = message;
     }
 }

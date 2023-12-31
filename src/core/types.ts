@@ -1,9 +1,5 @@
 import { NextFunction, Request, Response } from "express";
 
-export type Config = {
-    port?: number;
-};
-
 export type Req = Request;
 export type Res = Response;
 export type Next = NextFunction;
@@ -16,26 +12,7 @@ export type Context = {
     headers: any;
     body: any;
     requestId: string;
-};
-
-export type ParamMetadataValue = {
-    paramIdx: number;
-    paramName?: string;
-};
-
-export type CtxSource =
-    | "req"
-    | "res"
-    | "requestId"
-    | "query"
-    | "params"
-    | "headers"
-    | "body";
-
-export type CtxMetadataValue = {
-    source?: CtxSource;
-    propertyKey: string;
-    paramIdx: number;
+    userId?: string;
 };
 
 export type MiddlewareFunc = (req: Req, res: Res, next: Next) => Promise<void>;

@@ -1,14 +1,48 @@
-import { Body, Controller, Post } from "@/core/decorators/routeDecorator";
-import { ds } from "@/core/components/dataSource";
-import { User } from "@/entities/user";
-import { CreateUserDto } from "@/models/user/createUserDto";
+import {
+    Body,
+    Controller,
+    Param,
+    Post,
+    Put,
+} from "@/core/decorators/routeDecorator";
+import { CacheClient } from "@/core/components/cacheClient";
+import { ServiceError } from "@/core/errors";
+import { Commons } from "@/core/utils";
+import { UserLoginDto, UserRegisterDto } from "@/models/user";
+import { NonAuth } from "@/core/decorators/authorizationDecorator";
+import { KEY_USER_TOKEN } from "@/core/constants";
+import { UserService } from "@/services/userService";
+import { LazyInject } from "@/core/decorators/injectionDecorator";
 
 @Controller("/users")
 export class UserController {
-    @Post("/")
-    async create(@Body() createUserDto: CreateUserDto) {
-        const userRepository = ds.getRepository(User);
-        const res = await userRepository.save(createUserDto);
-        return res;
+    constructor(
+        @LazyInject(() => UserService)
+        private userService: UserService,
+    ) {}
+
+    @Post("/register")
+    @NonAuth()
+    async register(@Body() userRegisterDto: UserRegisterDto) {
+        return this.userService.register(userRegisterDto);
+    }
+
+    @Put("/login")
+    @NonAuth()
+    async login(@Body() userLoginDto: UserLoginDto) {
+        return this.userService.login(userLoginDto);
+    }
+
+    @Put("/logout/:id")
+    async logout(@Param("id") id: string) {
+        const res = await CacheClient.remove(
+            Commons.generateCacheKey(KEY_USER_TOKEN, id),
+        );
+
+        if (!res) {
+            throw new ServiceError("Please login first.");
+        }
+
+        return {};
     }
 }
