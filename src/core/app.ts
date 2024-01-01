@@ -44,14 +44,26 @@ import { ConstructorParamMetadata } from "@/core/decorators/injectionDecorator";
 import { Permission } from "@/entities/accounts/permission";
 import { Role } from "@/entities/accounts/role";
 
-const engine: Express = express();
-const classMetadataContainer: Map<string, ClassMetadata> = new Map();
-const earlySingletonObjects: Map<string, any> = new Map();
-const singletonObjects: Map<string, any> = new Map();
+type LifecycleEvents = {
+    /**
+     * Do something before application started.
+     */
+    onReady: Function;
 
-export const Application = {
+    /**
+     * Do something before application shutdown.
+     */
+    onClose: Function;
+};
+
+export class Application {
+    constructor(private lifecycleEvents: LifecycleEvents) {}
+
+    /**
+     * The bootstrap to running an application.
+     */
     async run() {
-        await registerLifecycleEvents();
+        await this.registerLifecycleEvents();
 
         engine.use(corsMiddleware);
         engine.use(bodyParser.json());
@@ -64,51 +76,27 @@ export const Application = {
         engine.listen(globalConfig.port, () => {
             logger.info(`Server started on ${globalConfig.port} (*￣︶￣).`);
         });
-    },
-};
+    }
 
-async function registerLifecycleEvents() {
-    await onReady();
+    async registerLifecycleEvents() {
+        const { onReady, onClose } = this.lifecycleEvents;
+        await onReady();
 
-    process.on("SIGINT", async () => {
-        await onClose();
-        process.exit(0);
-    });
-    process.on("SIGTERM", async () => {
-        await onClose();
-        process.exit(0);
-    });
-}
-
-/**
- * Lifecycle function, do something before engine started.
- */
-async function onReady() {
-    try {
-        // to initialize the initial connection with the database, register all entities
-        // and "synchronize" database schema, call "initialize()" method of a newly created database
-        // once in your application bootstrap
-        await DS.initialize();
-        logger.info("Data Source initialized.");
-    } catch (err) {
-        throw new Error(`Failed when executing lifecycle event "onReady". ${err}.`);
+        process.on("SIGINT", async () => {
+            await onClose();
+            process.exit(0);
+        });
+        process.on("SIGTERM", async () => {
+            await onClose();
+            process.exit(0);
+        });
     }
 }
 
-/**
- * Lifecycle function, do something before engine shutdown.
- */
-async function onClose() {
-    try {
-        await DS.destroy();
-        logger.info("Data Source destroyed.");
-
-        await CacheClient.quit();
-        logger.info("Cache client closed.");
-    } catch (err) {
-        throw new Error(`Failed when executing lifecycle event "onClose". ${err}.`);
-    }
-}
+const engine: Express = express();
+const classMetadataContainer: Map<string, ClassMetadata> = new Map();
+const earlySingletonObjects: Map<string, any> = new Map();
+const singletonObjects: Map<string, any> = new Map();
 
 async function initializeRoutes() {
     for (const classMetadata of classMetadataContainer.values()) {
