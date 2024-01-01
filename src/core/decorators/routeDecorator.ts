@@ -116,14 +116,10 @@ function createRouteParamDecorator(metadataKey: string) {
                 methodParamType: paramTypes[index], // TODO: Check for is required?
                 methodParamIndex: index,
             };
-            extendMetadata(metadataKey, paramMetadata, target, key);
+            const existsData: any[] = Reflect.getMetadata(metadataKey, target, key) ?? [];
+            Reflect.defineMetadata(metadataKey, [...existsData, paramMetadata], target, key);
         };
     };
-}
-
-function extendMetadata(metadataKey: string, value: any, target: any, key: string | symbol) {
-    const originValues: any[] = Reflect.getMetadata(metadataKey, target, key) ?? [];
-    Reflect.defineMetadata(metadataKey, [...originValues, value], target, key);
 }
 
 function cutRoutePath(str: string): string {
