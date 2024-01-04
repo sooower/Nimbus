@@ -1,5 +1,6 @@
 import path from "path";
-import { Commons, Objects } from "@/core/utils";
+import { Commons } from "@/core/utils/commons";
+import { Objects } from "@/core/utils/objects";
 
 function loadConfig(): any {
     const { env, baseDir, ext } = Commons.getEnvBaseDirAndExt();

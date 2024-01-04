@@ -1,6 +1,6 @@
 import jwt, { Secret, SignOptions } from "jsonwebtoken";
 import { globalConfig } from "@/core/components/config";
-import { Objects } from "@/core/utils";
+import { Objects } from "@/core/utils/objects";
 
 type JwtConfig = {
     secret: Secret;
