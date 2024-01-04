@@ -46,7 +46,7 @@ export class Application {
         });
     }
 
-    async registerLifecycleEvents() {
+    private async registerLifecycleEvents() {
         const { onReady, onClose } = this.lifecycleEvents;
         await onReady();
 

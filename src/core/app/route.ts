@@ -57,7 +57,9 @@ export class Route {
                     classMetadata.clazz,
                 );
                 if (routeClassMetadata === undefined) {
-                    throw new RouteInitializationError(`Route class metadata is undefined.`);
+                    throw new RouteInitializationError(
+                        `Route class metadata is undefined. class: "${classMetadata.clazz}"`,
+                    );
                 }
 
                 router[routeMetadata.method](
