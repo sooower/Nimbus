@@ -8,7 +8,7 @@ type JwtConfig = {
 };
 
 function getJwtConfig() {
-    return Objects.mergeObjects<JwtConfig>(globalConfig.jwt, {
+    return Objects.merge<JwtConfig>(globalConfig.jwt, {
         secret: "Test_Jwt_Sign_Secret",
         options: {
             expiresIn: "30d",

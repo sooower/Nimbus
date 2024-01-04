@@ -4,7 +4,7 @@ import { globalConfig } from "@/core/components/config";
 import { Objects } from "@/core/utils";
 
 export const DS = new DataSource(
-    Objects.mergeObjects<DataSourceOptions>(globalConfig.dataSource, {
+    Objects.merge<DataSourceOptions>(globalConfig.dataSource, {
         type: "postgres",
         host: "localhost",
         port: 5432,

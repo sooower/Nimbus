@@ -8,7 +8,7 @@ const cacheClient = getRedisCacheClient();
 
 function getRedisCacheClient() {
     const redis = new Redis(
-        Objects.mergeObjects<RedisOptions>(globalConfig.redis, {
+        Objects.merge<RedisOptions>(globalConfig.redis, {
             host: "localhost",
             port: 6379,
         }),

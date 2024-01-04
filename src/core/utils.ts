@@ -59,7 +59,7 @@ export const Objects = {
      * @param from Object used to copy from.
      * @param to Object used to copy to a new object.
      */
-    mergeObjects<T>(from: any, to: any): T {
+    merge<T>(from: any, to: any): T {
         const merged = { ...to };
 
         for (const key in from) {
@@ -69,7 +69,7 @@ export const Objects = {
                     to.hasOwnProperty(key) &&
                     typeof to[key] === "object"
                 ) {
-                    merged[key] = Objects.mergeObjects(from[key], to[key]);
+                    merged[key] = Objects.merge(from[key], to[key]);
                 } else {
                     merged[key] = from[key];
                 }

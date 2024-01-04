@@ -4,7 +4,7 @@ import { Objects } from "@/core/utils";
 
 export function appLogger(category?: string) {
     log4js.configure(
-        Objects.mergeObjects<Configuration>(globalConfig.log4js, {
+        Objects.merge<Configuration>(globalConfig.log4js, {
             appenders: {
                 file: {
                     type: "dateFile",

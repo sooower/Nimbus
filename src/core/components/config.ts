@@ -6,7 +6,7 @@ function loadConfig(): any {
     const defaultConfig = require(path.resolve(`${baseDir}/config/config.${ext}`)).default;
     const envConfig = require(path.resolve(`${baseDir}/config/config.${env}.${ext}`)).default;
 
-    return Objects.mergeObjects(envConfig, defaultConfig);
+    return Objects.merge(envConfig, defaultConfig);
 }
 
 export const globalConfig = loadConfig();
