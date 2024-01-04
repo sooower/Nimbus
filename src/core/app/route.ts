@@ -210,16 +210,16 @@ export class Route {
             return;
         }
 
-        // Do not check for permission if role.ts is admin
+        // Do not check for permission if role is admin
         const roleRecords = await DS.getRepository(Role)
             .createQueryBuilder("role")
-            .innerJoin("role.ts.users", "user")
+            .innerJoin("role.users", "user")
             .where("user.id = :userId", { userId })
-            .select("role.ts.name")
+            .select("role.name")
             .getMany();
 
         const roles = roleRecords.map(it => it.name);
-        if (roles.includes("admin")) {
+        if (roles.includes("ADMIN")) {
             return;
         }
 
@@ -227,7 +227,7 @@ export class Route {
         const permissionRecords = await DS.getRepository(Permission)
             .createQueryBuilder("permission")
             .innerJoin("permission.roles", "role")
-            .innerJoin("role.ts.users", "user")
+            .innerJoin("role.users", "user")
             .where("user.id = :userId", { userId })
             .select("permission.name")
             .getMany();
