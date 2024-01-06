@@ -1,14 +1,15 @@
-import { ObjectsFactory } from "@/core/app/objectsFactory";
+import { validate } from "class-validator";
 import { Express, Router } from "express";
-import {
-    ClassMetadata,
-    CtxMetadata,
-    ParamMetadata,
-    RouteClassMetadata,
-    RouteMetadata,
-} from "@/core/decorators/routeDecorator";
+
+import { ObjectsFactory } from "@/core/app/objectsFactory";
+import { CacheClient } from "@/core/components/cacheClient";
+import { DS } from "@/core/components/dataSource";
+import { Jwt } from "@/core/components/jwt";
+import { logger } from "@/core/components/logger";
 import {
     KEY_NONE_AUTH,
+    KEY_PARSE_ARRAY_TYPE,
+    KEY_PARSE_TYPE,
     KEY_PERMISSION,
     KEY_ROUTE_BODY,
     KEY_ROUTE_CLASS,
@@ -20,21 +21,37 @@ import {
     KEY_ROUTE_STATUS_CODE,
     KEY_USER_TOKEN,
 } from "@/core/constants";
-import { AuthenticationError, AuthorizationError, RouteInitializationError } from "@/core/errors";
-import { logger } from "@/core/components/logger";
+import { PropertyArrayMetadata, PropertyMetadata } from "@/core/decorators/parseDecorator";
+import {
+    ClassMetadata,
+    CtxMetadata,
+    ParamMetadata,
+    RouteClassMetadata,
+    RouteMetadata,
+} from "@/core/decorators/routeDecorator";
+import {
+    AuthenticationError,
+    AuthorizationError,
+    RouteInitializationError,
+    ValidationError,
+} from "@/core/errors";
 import { Context, Next, Req, Res } from "@/core/types";
-import { Jwt } from "@/core/components/jwt";
-import { CacheClient } from "@/core/components/cacheClient";
 import { Commons } from "@/core/utils/commons";
-import { DS } from "@/core/components/dataSource";
-import { Role } from "@/entities/accounts/role";
 import { Permission } from "@/entities/accounts/permission";
+import { Role } from "@/entities/accounts/role";
 
 export class Route {
+    private routeParams: Map<string, string> = new Map();
+
     constructor(
         private objectsFactory: ObjectsFactory,
         private engine: Express,
-    ) {}
+    ) {
+        this.routeParams.set(KEY_ROUTE_QUERY, "query");
+        this.routeParams.set(KEY_ROUTE_PARAMS, "params");
+        this.routeParams.set(KEY_ROUTE_HEADERS, "headers");
+        this.routeParams.set(KEY_ROUTE_BODY, "body");
+    }
 
     async initialize() {
         for (const classMetadata of this.objectsFactory.getClassMetadataContainer().values()) {
@@ -43,7 +60,7 @@ export class Route {
             for (const [methodName, methodArgs] of classMetadata.methodArgsMetadata) {
                 const routeMetadata: RouteMetadata | undefined = Reflect.getMetadata(
                     KEY_ROUTE_PATH,
-                    classMetadata.clazz.prototype,
+                    classMetadata.clazz,
                     methodName,
                 );
 
@@ -100,22 +117,35 @@ export class Route {
                 }
 
                 // Assign method args
-                const map = new Map<string, string>();
-                map.set(KEY_ROUTE_QUERY, "query");
-                map.set(KEY_ROUTE_PARAMS, "params");
-                map.set(KEY_ROUTE_HEADERS, "headers");
-                map.set(KEY_ROUTE_BODY, "body");
+                for (const [routeKey, routeParamKey] of this.routeParams) {
+                    const paramsMetadata: ParamMetadata[] =
+                        Reflect.getMetadata(routeKey, classMetadata.clazz, methodName) ?? [];
 
-                for (const [routeKey, routeValue] of map) {
-                    (
-                        Reflect.getMetadata(routeKey, classMetadata.clazz.prototype, methodName) ??
-                        []
-                    ).forEach((paramMetadata: ParamMetadata) => {
-                        methodArgs[paramMetadata.methodParamIndex] =
+                    for (const paramMetadata of paramsMetadata) {
+                        const routeParamValue =
                             paramMetadata.routeParamName !== undefined
-                                ? (req as any)[routeValue][paramMetadata.routeParamName]
-                                : (req as any)[routeValue];
-                    });
+                                ? (req as any)[routeParamKey][paramMetadata.routeParamName]
+                                : (req as any)[routeParamKey];
+
+                        const instance = await this.transferRouteParamToInstance(
+                            paramMetadata.methodParamType,
+                            routeParamValue,
+                        );
+
+                        // Validate the class instance
+                        const errors = await validate(instance);
+                        if (errors.length > 0) {
+                            throw new ValidationError(
+                                errors
+                                    .flatMap(err =>
+                                        err.constraints ? Object.values(err.constraints) : [],
+                                    )
+                                    .join("; "),
+                            );
+                        }
+
+                        methodArgs[paramMetadata.methodParamIndex] = instance;
+                    }
                 }
 
                 // Assign context
@@ -161,7 +191,7 @@ export class Route {
         methodName: string,
     ) {
         const nonAuth: boolean =
-            Reflect.getMetadata(KEY_NONE_AUTH, classMetadata.clazz.prototype, methodName) ?? false;
+            Reflect.getMetadata(KEY_NONE_AUTH, classMetadata.clazz, methodName) ?? false;
         if (nonAuth) {
             return;
         }
@@ -205,7 +235,7 @@ export class Route {
         userId: string,
     ) {
         const permissions: string[] =
-            Reflect.getMetadata(KEY_PERMISSION, classMetadata.clazz.prototype, key) ?? [];
+            Reflect.getMetadata(KEY_PERMISSION, classMetadata.clazz, key) ?? [];
         if (permissions.length === 0) {
             return;
         }
@@ -240,6 +270,71 @@ export class Route {
         });
     }
 
+    private transferPlainToInstance(clazz: new () => any, obj: any) {
+        const instance = new clazz();
+
+        Object.keys(obj).forEach(key => {
+            // If property type is array, instantiate element class of the array at first
+            const propertiesArrayMetadata: PropertyArrayMetadata[] =
+                Reflect.getMetadata(KEY_PARSE_ARRAY_TYPE, clazz) ?? [];
+            for (const propertyArrayMetadata of propertiesArrayMetadata) {
+                if (propertyArrayMetadata.name === key) {
+                    instance[key] = obj[key].map((it: any) =>
+                        this.transferPlainToInstance(propertyArrayMetadata.clazz, it),
+                    );
+                    return;
+                }
+            }
+
+            // Assign property directly
+            instance[key] = obj[key];
+        });
+
+        return instance;
+    }
+
+    private async transferRouteParamToInstance(
+        methodParamType: new () => any,
+        routeParamValue: any,
+    ) {
+        const instance = this.transferPlainToInstance(methodParamType, routeParamValue);
+
+        // Transfer properties types if the class has properties transform metadata
+        const propertiesMetadata: PropertyMetadata[] =
+            Reflect.getMetadata(KEY_PARSE_TYPE, methodParamType) ?? [];
+        propertiesMetadata.forEach(propertyMetadata => {
+            const propertyName = propertyMetadata.name;
+            const propertyValue = instance[propertyName];
+            const propertyTypeName = propertyMetadata.clazz.name;
+
+            // Ignore the property which is not defined in property class
+            if (instance[propertyName] === undefined) {
+                return;
+            }
+
+            switch (propertyTypeName) {
+                case "Number":
+                    if (!/^[-+]?[0-9]+(\.[0-9]*)?$/.test(propertyValue)) {
+                        throw new ValidationError(`\`${propertyName}\` must be a number value.`);
+                    }
+
+                    instance[propertyName] = Number(instance[propertyName]);
+                    break;
+                case "Boolean":
+                    if (!/^(true|false)$/.test(propertyValue)) {
+                        throw new ValidationError(`\`${propertyName}\` must be a boolean value.`);
+                    }
+
+                    instance[propertyName] = instance[propertyName] === "true";
+                    break;
+                default:
+                    throw new ValidationError(`Not supported property type "${propertyTypeName}".`);
+            }
+        });
+
+        return instance;
+    }
+
     private assignContext(
         req: Req,
         res: Res,
@@ -251,7 +346,7 @@ export class Route {
     ) {
         const ctxMetadata: CtxMetadata | undefined = Reflect.getMetadata(
             KEY_ROUTE_CTX,
-            classMetadata.clazz.prototype,
+            classMetadata.clazz,
             methodName,
         );
         if (ctxMetadata === undefined) {
@@ -273,7 +368,6 @@ export class Route {
 
     private assignStatusCode(res: Res, classMetadata: ClassMetadata, methodName: string) {
         res.statusCode =
-            Reflect.getMetadata(KEY_ROUTE_STATUS_CODE, classMetadata.clazz.prototype, methodName) ??
-            200;
+            Reflect.getMetadata(KEY_ROUTE_STATUS_CODE, classMetadata.clazz, methodName) ?? 200;
     }
 }

@@ -1,13 +1,24 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from "@/core/decorators/routeDecorator";
 import { CacheClient } from "@/core/components/cacheClient";
-import { ServiceError } from "@/core/errors";
-import { UserLoginDto, UserRegisterDto } from "@/models/accounts/user";
-import { NonAuth } from "@/core/decorators/authorizationDecorator";
 import { KEY_USER_TOKEN } from "@/core/constants";
-import { UserService } from "@/services/userService";
+import { NonAuth } from "@/core/decorators/authorizationDecorator";
 import { LazyInject } from "@/core/decorators/injectionDecorator";
 import { Permis } from "@/core/decorators/permissionDecorator";
+import {
+    Body,
+    Controller,
+    Delete,
+    Get,
+    Param,
+    Post,
+    Put,
+    Query,
+} from "@/core/decorators/routeDecorator";
+import { ServiceError } from "@/core/errors";
 import { Commons } from "@/core/utils/commons";
+import { UserLoginDto, UserRegisterDto } from "@/models/accounts/user";
+import { UserService } from "@/services/userService";
+
+import { GetUsersDto } from "../../models/accounts/user";
 
 @Controller("/users")
 export class UserController {
@@ -41,8 +52,8 @@ export class UserController {
 
     @Get()
     @Permis(["user:read"])
-    async getUsers() {
-        return "getUsers";
+    async getUsers(@Query() getUsersDto: GetUsersDto) {
+        return getUsersDto;
     }
 
     @Get("/:id")

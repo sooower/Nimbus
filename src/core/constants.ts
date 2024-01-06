@@ -10,6 +10,9 @@ export const KEY_ROUTE_CTX = "route:context";
 export const KEY_INJECTABLE = "injectable";
 export const KEY_LAZY_INJECT = "lazyInject";
 
+export const KEY_PARSE_TYPE = "parseType";
+export const KEY_PARSE_ARRAY_TYPE = "parseArrayType";
+
 export const KEY_NONE_AUTH = "noneAuth";
 export const KEY_USER_TOKEN = "userToken";
 export const KEY_PERMISSION = "permission";

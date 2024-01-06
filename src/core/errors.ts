@@ -36,3 +36,9 @@ export class AuthenticationError extends ServiceError {
         super(message);
     }
 }
+
+export class ValidationError extends ServiceError {
+    constructor(message: string) {
+        super(message);
+    }
+}

@@ -1,4 +1,3 @@
-import { MiddlewareFunc } from "@/core/types";
 import {
     KEY_INJECTABLE,
     KEY_ROUTE_BODY,
@@ -10,6 +9,9 @@ import {
     KEY_ROUTE_QUERY,
     KEY_ROUTE_STATUS_CODE,
 } from "@/core/constants";
+import { MiddlewareFunc } from "@/core/types";
+
+import { Metadatas } from "../utils/metadatas";
 
 export type CtxSource = "req" | "res" | "requestId" | "query" | "params" | "headers" | "body";
 
@@ -23,7 +25,7 @@ export type ClassMetadata = {
     /**
      * Target class.
      */
-    clazz: any;
+    clazz: new () => any;
 
     /**
      * Constructor parameters class metadata.
@@ -50,7 +52,7 @@ export type RouteClassMetadata = {
 
 export type ParamMetadata = {
     routeParamName?: string;
-    methodParamType: any; // TODO: check for is required?
+    methodParamType: new () => any;
     methodParamIndex: number;
 };
 
@@ -77,7 +79,7 @@ export const Body = createRouteParamDecorator(KEY_ROUTE_BODY);
 
 export function StatusCode(code: number): MethodDecorator {
     return (target: object, key: string | symbol, descriptor: PropertyDescriptor) => {
-        Reflect.defineMetadata(KEY_ROUTE_STATUS_CODE, code, target, key);
+        Reflect.defineMetadata(KEY_ROUTE_STATUS_CODE, code, target.constructor, key);
     };
 }
 
@@ -88,7 +90,7 @@ export function Ctx(source?: CtxSource): ParameterDecorator {
         }
 
         const ctxMetadata: CtxMetadata = { source, key, index };
-        Reflect.defineMetadata(KEY_ROUTE_CTX, ctxMetadata, target, key);
+        Reflect.defineMetadata(KEY_ROUTE_CTX, ctxMetadata, target.constructor, key);
     };
 }
 
@@ -97,7 +99,7 @@ function createRouteMethodDecorator(method: RouteMethod) {
         return (target: object, key: string | symbol, descriptor: PropertyDescriptor) => {
             path = path == "" || path === undefined ? "/" : cutRoutePath(path);
             const routeMetadata: RouteMetadata = { path, method, middlewares };
-            Reflect.defineMetadata(KEY_ROUTE_PATH, routeMetadata, target, key);
+            Reflect.defineMetadata(KEY_ROUTE_PATH, routeMetadata, target.constructor, key);
         };
     };
 }
@@ -113,11 +115,10 @@ function createRouteParamDecorator(metadataKey: string) {
             const paramTypes: any[] = Reflect.getMetadata("design:paramtypes", target, key) ?? [];
             const paramMetadata: ParamMetadata = {
                 routeParamName: name,
-                methodParamType: paramTypes[index], // TODO: Check for is required?
+                methodParamType: paramTypes[index],
                 methodParamIndex: index,
             };
-            const existsData: any[] = Reflect.getMetadata(metadataKey, target, key) ?? [];
-            Reflect.defineMetadata(metadataKey, [...existsData, paramMetadata], target, key);
+            Metadatas.extendArray(metadataKey, paramMetadata, target.constructor, key);
         };
     };
 }
