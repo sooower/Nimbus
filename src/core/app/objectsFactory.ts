@@ -24,12 +24,12 @@ export class ObjectsFactory {
 
     initialize() {
         this.scanInjectableClassesMetadata();
-        logger.debug(`Scan injectable classes metadata completed.`);
 
         Array.from(this.classMetadataContainer.values()).forEach(classMetadata => {
             this.createObjectInstance(classMetadata);
         });
-        logger.debug(`Initialize injectable objects completed.`);
+
+        logger.info(`Objects factory initialized.`);
     }
 
     private scanInjectableClassesMetadata() {

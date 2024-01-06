@@ -76,7 +76,7 @@ export class Route {
                 );
                 if (routeClassMetadata === undefined) {
                     throw new RouteInitializationError(
-                        `Route class metadata is undefined. class: "${classMetadata.clazz}"`,
+                        `Route class "${classMetadata.clazz}" metadata is undefined.`,
                     );
                 }
 
@@ -97,6 +97,8 @@ export class Route {
                 );
             }
         }
+
+        logger.info(`Route initialized.`);
     }
 
     private async initializeHandler(
@@ -174,7 +176,7 @@ export class Route {
                 this.assignStatusCode(res, classMetadata, methodName);
 
                 const duration = Date.now() - start;
-                logger.debug(
+                logger.info(
                     `${req.hostname} ${duration}ms ${req.method.toUpperCase()} ${req.originalUrl}`,
                 );
 

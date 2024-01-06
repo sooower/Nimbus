@@ -5,6 +5,8 @@
     "main": "dist/main.js",
     "scripts": {
         "dev": "ts-node-dev -r tsconfig-paths/register src/main.ts",
+        "build": "rimraf dist && tsc",
+        "prod": "npm run build && NODE_ENV=prod node -r tsconfig-paths/register dist/main.js",
         "prettier": "prettier --config .prettierrc --write ./src/**/**/*.ts"
     },
     "keywords": [],
@@ -17,6 +19,7 @@
         "@types/jsonwebtoken": "^9.0.5",
         "@types/node": "^20.8.6",
         "prettier": "^3.0.3",
+        "rimraf": "^5.0.5",
         "ts-node-dev": "^2.0.0",
         "tsconfig-paths": "^4.2.0",
         "typescript": "^5.2.2"
