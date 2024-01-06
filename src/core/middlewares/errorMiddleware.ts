@@ -1,5 +1,5 @@
-import { Next, Req, Res } from "@/core/types";
-import { logger } from "@/core/components/logger";
+import { logger } from "../components/logger";
+import { Next, Req, Res } from "../types";
 
 export function errorMiddleware(err: any, req: Req, res: Res, next: Next) {
     logger.error(`[${err.requestId}]`, err);

@@ -1,6 +1,7 @@
 import { CronJob as Job } from "cron";
-import { globalConfig } from "@/core/components/config";
-import { logger } from "@/core/components/logger";
+
+import { globalConfig } from "../components/config";
+import { logger } from "../components/logger";
 
 export function CronJob(options: {
     scope: string;

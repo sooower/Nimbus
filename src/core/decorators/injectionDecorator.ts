@@ -1,4 +1,4 @@
-import { KEY_INJECTABLE, KEY_LAZY_INJECT } from "@/core/constants";
+import { KEY_INJECTABLE, KEY_LAZY_INJECT } from "../constants";
 import { Metadatas } from "../utils/metadatas";
 
 export type ConstructorParamMetadata = {

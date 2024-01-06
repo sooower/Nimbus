@@ -1,12 +1,14 @@
 import "reflect-metadata";
+
 import bodyParser from "body-parser";
-import express, { Express } from "express";
-import { corsMiddleware } from "@/core/middlewares/corsMiddleware";
-import { errorMiddleware } from "@/core/middlewares/errorMiddleware";
-import { globalConfig } from "@/core/components/config";
-import { logger } from "@/core/components/logger";
-import { ObjectsFactory } from "@/core/app/objectsFactory";
-import { Route } from "@/core/app/route";
+import express from "express";
+
+import { globalConfig } from "../components/config";
+import { logger } from "../components/logger";
+import { corsMiddleware } from "../middlewares/corsMiddleware";
+import { errorMiddleware } from "../middlewares/errorMiddleware";
+import { ObjectsFactory } from "./objectsFactory";
+import { Route } from "./route";
 
 type LifecycleEvents = {
     /**
@@ -29,7 +31,7 @@ export class Application {
     async run() {
         await this.registerLifecycleEvents();
 
-        const engine: Express = express();
+        const engine = express();
 
         engine.use(corsMiddleware);
         engine.use(bodyParser.json());

@@ -7,9 +7,11 @@ import {
     PrimaryGeneratedColumn,
     UpdateDateColumn,
 } from "typeorm";
+
 import { SCHEMA_ACCOUNTS } from "@/constants";
-import { Permission } from "@/entities/accounts/permission";
-import { User } from "@/entities/accounts/user";
+
+import { Permission } from "./permission";
+import { User } from "./user";
 
 @Entity({ schema: SCHEMA_ACCOUNTS })
 export class Role {

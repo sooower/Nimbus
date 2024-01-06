@@ -1,13 +1,13 @@
 import { globSync } from "glob";
 import path from "path";
 
-import { logger } from "@/core/components/logger";
-import { KEY_INJECTABLE, KEY_LAZY_INJECT } from "@/core/constants";
-import { ConstructorParamMetadata } from "@/core/decorators/injectionDecorator";
-import { ClassMetadata } from "@/core/decorators/routeDecorator";
-import { ObjectInitializationError } from "@/core/errors";
-import { Commons } from "@/core/utils/commons";
-import { Objects } from "@/core/utils/objects";
+import { logger } from "../components/logger";
+import { KEY_INJECTABLE, KEY_LAZY_INJECT } from "../constants";
+import { ConstructorParamMetadata } from "../decorators/injectionDecorator";
+import { ClassMetadata } from "../decorators/routeDecorator";
+import { ObjectInitializationError } from "../errors";
+import { Commons } from "../utils/commons";
+import { Objects } from "../utils/objects";
 
 export class ObjectsFactory {
     private classMetadataContainer: Map<string, ClassMetadata> = new Map();

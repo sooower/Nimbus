@@ -1,8 +1,9 @@
-import { globalConfig } from "@/core/components/config";
-import { logger } from "@/core/components/logger";
-import { Objects } from "@/core/utils/objects";
 import Redis, { RedisOptions } from "ioredis";
 import stringify from "safe-stable-stringify";
+
+import { Objects } from "../utils/objects";
+import { globalConfig } from "./config";
+import { logger } from "./logger";
 
 const cacheClient = getRedisCacheClient();
 

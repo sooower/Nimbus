@@ -1,7 +1,7 @@
-import { DataSource } from "typeorm";
-import { DataSourceOptions } from "typeorm/data-source/DataSourceOptions";
-import { globalConfig } from "@/core/components/config";
-import { Objects } from "@/core/utils/objects";
+import { DataSource, DataSourceOptions } from "typeorm";
+
+import { Objects } from "../utils/objects";
+import { globalConfig } from "./config";
 
 export const DS = new DataSource(
     Objects.merge<DataSourceOptions>(globalConfig.dataSource, {

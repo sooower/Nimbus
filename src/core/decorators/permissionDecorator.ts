@@ -1,4 +1,4 @@
-import { KEY_PERMISSION } from "@/core/constants";
+import { KEY_PERMISSION } from "../constants";
 
 export function Permis(permis: string[]): MethodDecorator {
     return (target: object, key: string | symbol, descriptor: PropertyDescriptor) => {

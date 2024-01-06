@@ -36,7 +36,7 @@ export class GetUsersDto {
     @IsNotEmpty()
     age!: number;
 
-    @IsInt()
+    @IsNumber()
     @ParseType()
     @IsNotEmpty()
     salary!: number;

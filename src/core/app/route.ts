@@ -1,11 +1,13 @@
 import { validate } from "class-validator";
 import { Express, Router } from "express";
 
-import { ObjectsFactory } from "@/core/app/objectsFactory";
-import { CacheClient } from "@/core/components/cacheClient";
-import { DS } from "@/core/components/dataSource";
-import { Jwt } from "@/core/components/jwt";
-import { logger } from "@/core/components/logger";
+import { Permission } from "@/entities/accounts/permission";
+import { Role } from "@/entities/accounts/role";
+
+import { CacheClient } from "../components/cacheClient";
+import { DS } from "../components/dataSource";
+import { Jwt } from "../components/jwt";
+import { logger } from "../components/logger";
 import {
     KEY_NONE_AUTH,
     KEY_PARSE_ARRAY_TYPE,
@@ -20,25 +22,24 @@ import {
     KEY_ROUTE_QUERY,
     KEY_ROUTE_STATUS_CODE,
     KEY_USER_TOKEN,
-} from "@/core/constants";
-import { PropertyArrayMetadata, PropertyMetadata } from "@/core/decorators/parseDecorator";
+} from "../constants";
+import { PropertyArrayMetadata, PropertyMetadata } from "../decorators/parseDecorator";
 import {
     ClassMetadata,
     CtxMetadata,
     ParamMetadata,
     RouteClassMetadata,
     RouteMetadata,
-} from "@/core/decorators/routeDecorator";
+} from "../decorators/routeDecorator";
 import {
     AuthenticationError,
     AuthorizationError,
     RouteInitializationError,
     ValidationError,
-} from "@/core/errors";
-import { Context, Next, Req, Res } from "@/core/types";
-import { Commons } from "@/core/utils/commons";
-import { Permission } from "@/entities/accounts/permission";
-import { Role } from "@/entities/accounts/role";
+} from "../errors";
+import { Context, Next, Req, Res } from "../types";
+import { Commons } from "../utils/commons";
+import { ObjectsFactory } from "./objectsFactory";
 
 export class Route {
     private routeParams: Map<string, string> = new Map();

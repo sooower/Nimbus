@@ -8,9 +8,8 @@ import {
     KEY_ROUTE_PATH,
     KEY_ROUTE_QUERY,
     KEY_ROUTE_STATUS_CODE,
-} from "@/core/constants";
-import { MiddlewareFunc } from "@/core/types";
-
+} from "../constants";
+import { MiddlewareFunc } from "../types";
 import { Metadatas } from "../utils/metadatas";
 
 export type CtxSource = "req" | "res" | "requestId" | "query" | "params" | "headers" | "body";

@@ -1,7 +1,7 @@
-import { Application } from "@/core/app";
-import { CacheClient } from "@/core/components/cacheClient";
-import { DS } from "@/core/components/dataSource";
-import { logger } from "@/core/components/logger";
+import { Application } from "./core/app";
+import { CacheClient } from "./core/components/cacheClient";
+import { DS } from "./core/components/dataSource";
+import { logger } from "./core/components/logger";
 
 new Application({
     async onReady() {

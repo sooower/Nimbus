@@ -1,4 +1,4 @@
-import { KEY_NONE_AUTH } from "@/core/constants";
+import { KEY_NONE_AUTH } from "../constants";
 
 export function NonAuth(): MethodDecorator {
     return (target: object, key: string | symbol, descriptor: PropertyDescriptor) => {

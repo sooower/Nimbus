@@ -15,10 +15,8 @@ import {
 } from "@/core/decorators/routeDecorator";
 import { ServiceError } from "@/core/errors";
 import { Commons } from "@/core/utils/commons";
-import { UserLoginDto, UserRegisterDto } from "@/models/accounts/user";
+import { GetUsersDto, UserLoginDto, UserRegisterDto } from "@/models/accounts/user";
 import { UserService } from "@/services/userService";
-
-import { GetUsersDto } from "../../models/accounts/user";
 
 @Controller("/users")
 export class UserController {
