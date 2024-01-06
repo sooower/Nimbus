@@ -1,19 +1,44 @@
 export class ServiceError extends Error {
-    readonly requestId: string;
-    readonly status: number;
-    readonly code: string;
-    readonly message: string;
-
+    constructor(message: string);
     constructor(
-        requestId: string,
-        status: number,
-        code: string,
         message: string,
+        public status: number = 400,
+        public requestId?: string,
     ) {
-        super();
-        this.requestId = requestId;
+        super(message);
+
+        this.name = this.constructor.name;
         this.status = status;
-        this.code = code;
-        this.message = message;
+        this.requestId = requestId;
+    }
+}
+
+export class ObjectInitializationError extends ServiceError {
+    constructor(message: string) {
+        super(message);
+    }
+}
+
+export class RouteInitializationError extends ServiceError {
+    constructor(message: string) {
+        super(message);
+    }
+}
+
+export class AuthorizationError extends ServiceError {
+    constructor(message: string) {
+        super(message);
+    }
+}
+
+export class AuthenticationError extends ServiceError {
+    constructor(message: string) {
+        super(message);
+    }
+}
+
+export class ValidationError extends ServiceError {
+    constructor(message: string) {
+        super(message);
     }
 }
