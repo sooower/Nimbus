@@ -1,7 +1,6 @@
 {
-    "name": "typescript-playground",
-    "version": "1.0.0",
-    "description": "",
+    "name": "decoflow",
+    "version": "0.0.1",
     "main": "dist/main.js",
     "scripts": {
         "dev": "ts-node-dev src/main.ts",
@@ -10,8 +9,7 @@
         "prettier": "prettier --config .prettierrc --write ./src/**/**/*.ts"
     },
     "keywords": [],
-    "author": "",
-    "license": "ISC",
+    "author": "Sower",
     "devDependencies": {
         "@types/body-parser": "^1.19.5",
         "@types/cron": "^2.4.0",
