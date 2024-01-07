@@ -316,22 +316,25 @@ export class Route {
             }
 
             switch (propertyTypeName) {
-                case "Number":
+                case "Number": {
                     if (!/^[-+]?[0-9]+(\.[0-9]*)?$/.test(propertyValue)) {
                         throw new ValidationError(`\`${propertyName}\` must be a number value.`);
                     }
 
                     instance[propertyName] = Number(instance[propertyName]);
                     break;
-                case "Boolean":
+                }
+                case "Boolean": {
                     if (!/^(true|false)$/.test(propertyValue)) {
                         throw new ValidationError(`\`${propertyName}\` must be a boolean value.`);
                     }
 
                     instance[propertyName] = instance[propertyName] === "true";
                     break;
-                default:
+                }
+                default: {
                     throw new ValidationError(`Not supported property type "${propertyTypeName}".`);
+                }
             }
         });
 
