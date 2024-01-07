@@ -1,17 +1,15 @@
 {
-    "name": "typescript-playground",
-    "version": "1.0.0",
-    "description": "",
+    "name": "decoflow",
+    "version": "0.0.1",
     "main": "dist/main.js",
     "scripts": {
-        "dev": "ts-node-dev -r tsconfig-paths/register src/main.ts",
+        "dev": "ts-node-dev src/main.ts",
         "build": "rimraf dist && tsc",
         "prod": "npm run build && NODE_ENV=prod node -r tsconfig-paths/register dist/main.js",
         "prettier": "prettier --config .prettierrc --write ./src/**/**/*.ts"
     },
     "keywords": [],
-    "author": "",
-    "license": "ISC",
+    "author": "Sower",
     "devDependencies": {
         "@types/body-parser": "^1.19.5",
         "@types/cron": "^2.4.0",
@@ -19,9 +17,7 @@
         "@types/jsonwebtoken": "^9.0.5",
         "@types/node": "^20.8.6",
         "prettier": "^3.0.3",
-        "rimraf": "^5.0.5",
         "ts-node-dev": "^2.0.0",
-        "tsconfig-paths": "^4.2.0",
         "typescript": "^5.2.2"
     },
     "dependencies": {
@@ -36,7 +32,9 @@
         "log4js": "^6.9.1",
         "pg": "^8.11.3",
         "reflect-metadata": "^0.1.13",
+        "rimraf": "^5.0.5",
         "safe-stable-stringify": "^2.4.3",
+        "tsconfig-paths": "^4.2.0",
         "typeorm": "^0.3.17"
     }
 }
