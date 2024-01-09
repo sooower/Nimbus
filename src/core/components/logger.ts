@@ -30,7 +30,7 @@ export function appLogger(category?: string) {
         }),
     );
     const log = log4js.getLogger(category ?? "app");
-    log.level = globalConfig.logger.level ?? "info";
+    log.level = globalConfig.logger?.level ?? "info";
 
     return log;
 }
