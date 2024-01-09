@@ -3,12 +3,10 @@ import crypto from "crypto";
 export const Commons = {
     getEnvBaseDirAndExt() {
         const env = process.env.NODE_ENV ?? "dev";
-        return {
-            env,
-            baseDir: env === "prod" ? "dist" : "src",
-            ext: env === "prod" ? "js" : "ts",
-        };
+        const [baseDir, ext] = env === "prod" ? ["dist", "js"] : ["src", "ts"];
+        return { env, baseDir, ext };
     },
+
     encryptPassword(password: string, salt: string) {
         return crypto.pbkdf2Sync(password, salt, 1000, 16, "sha512").toString("hex");
     },
