@@ -41,6 +41,55 @@ import { Context, Next, Req, Res } from "../types";
 import { Commons } from "../utils/commons";
 import { ObjectsFactory } from "./objectsFactory";
 
+type InitializeHandlerOptions = {
+    classMetadata: ClassMetadata;
+    methodName: string;
+    methodArgs: string[];
+};
+
+type PreInterceptorOptions = {
+    req: Req;
+    res: Res;
+    requestId: string;
+    classMetadata: ClassMetadata;
+    methodName: string;
+    methodArgs: string[];
+};
+
+type PostInterceptorOptions = {
+    res: Res;
+    classMetadata: ClassMetadata;
+    methodName: string;
+};
+
+type RouteHandlerOptions = {
+    classMetadata: ClassMetadata;
+    methodName: string;
+};
+
+type AssignMethodArgsOptions = {
+    req: any;
+    classMetadata: ClassMetadata;
+    methodName: string;
+    methodArgs: string[];
+};
+
+type AssignContextOptions = {
+    req: Req;
+    res: Res;
+    classMetadata: ClassMetadata;
+    methodName: string;
+    methodArgs: string[];
+    userId: string | undefined;
+    requestId: string;
+};
+
+type AssignStatusCodeOptions = {
+    res: Res;
+    classMetadata: ClassMetadata;
+    methodName: string;
+};
+
 export class Route {
     private routeParams: Map<string, string> = new Map();
 
@@ -83,7 +132,7 @@ export class Route {
                 router[routeMetadata.method](
                     routeMetadata.path,
                     ...routeMetadata.middlewares,
-                    await this.initializeHandler(classMetadata, methodName, methodArgs),
+                    await this.initializeHandler({ classMetadata, methodName, methodArgs }),
                 );
 
                 this.engine.use(routeClassMetadata.routePrefix, router);
@@ -101,79 +150,26 @@ export class Route {
         logger.info(`Route initialized.`);
     }
 
-    private async initializeHandler(
-        classMetadata: ClassMetadata,
-        methodName: string,
-        methodArgs: string[],
-    ) {
+    private async initializeHandler(options: InitializeHandlerOptions) {
+        const { classMetadata, methodName, methodArgs } = options;
+
         return async (req: Req, res: Res, next: Next) => {
             const requestId = Commons.generateRequestId();
             try {
                 const start = Date.now();
 
-                // Check for authorization
-                const userId = await this.checkForAuthorization(req, classMetadata, methodName);
-
-                // Check for authentication
-                if (userId !== undefined) {
-                    await this.checkForAuthentication(classMetadata, methodName, userId);
-                }
-
-                // Assign method args
-                for (const [routeKey, routeParamKey] of this.routeParams) {
-                    const paramsMetadata: ParamMetadata[] =
-                        Reflect.getMetadata(routeKey, classMetadata.clazz, methodName) ?? [];
-
-                    for (const paramMetadata of paramsMetadata) {
-                        const routeParamValue =
-                            paramMetadata.routeParamName !== undefined
-                                ? (req as any)[routeParamKey][paramMetadata.routeParamName]
-                                : (req as any)[routeParamKey];
-
-                        const instance = await this.transferRouteParamToInstance(
-                            paramMetadata.methodParamType,
-                            routeParamValue,
-                        );
-
-                        // Validate the class instance
-                        const errors = await validate(instance);
-                        if (errors.length > 0) {
-                            throw new ValidationError(
-                                errors
-                                    .flatMap(err =>
-                                        err.constraints ? Object.values(err.constraints) : [],
-                                    )
-                                    .join("; "),
-                            );
-                        }
-
-                        methodArgs[paramMetadata.methodParamIndex] = instance;
-                    }
-                }
-
-                // Assign context
-                this.assignContext(
+                await this.applyPreInterceptors({
                     req,
                     res,
+                    requestId,
                     classMetadata,
                     methodName,
                     methodArgs,
-                    userId,
-                    requestId,
-                );
+                });
 
-                // Get singleton
-                const instance = this.objectsFactory
-                    .getSingletonObjects()
-                    .get(classMetadata.clazz.name);
+                const result = await this.applyHandler({ classMetadata, methodName });
 
-                // Execute handler method
-                const result = await instance[methodName](
-                    ...classMetadata.methodArgsMetadata.get(methodName)!,
-                );
-
-                // Assign status code
-                this.assignStatusCode(res, classMetadata, methodName);
+                await this.applyPostInterceptors({ res, classMetadata, methodName });
 
                 const duration = Date.now() - start;
                 logger.info(
@@ -186,6 +182,71 @@ export class Route {
                 next(err);
             }
         };
+    }
+
+    private async applyHandler(options: RouteHandlerOptions) {
+        const { classMetadata, methodName } = options;
+
+        const instance = this.objectsFactory.getSingletonObjects().get(classMetadata.clazz.name);
+
+        return await instance[methodName](...classMetadata.methodArgsMetadata.get(methodName)!);
+    }
+
+    private async applyPreInterceptors(options: PreInterceptorOptions) {
+        const { req, res, requestId, classMetadata, methodName, methodArgs } = options;
+
+        const userId = await this.checkForAuthorization(req, classMetadata, methodName);
+
+        if (userId !== undefined) {
+            await this.checkForAuthentication(classMetadata, methodName, userId);
+        }
+
+        await this.assignMethodArgsToInstancesAndValidate({
+            req,
+            classMetadata,
+            methodName,
+            methodArgs,
+        });
+
+        this.assignContext({ req, res, classMetadata, methodName, methodArgs, userId, requestId });
+    }
+
+    private async assignMethodArgsToInstancesAndValidate(options: AssignMethodArgsOptions) {
+        const { req, classMetadata, methodName, methodArgs } = options;
+
+        for (const [routeKey, routeParamKey] of this.routeParams) {
+            const paramsMetadata: ParamMetadata[] =
+                Reflect.getMetadata(routeKey, classMetadata.clazz, methodName) ?? [];
+
+            for (const paramMetadata of paramsMetadata) {
+                const routeParamValue =
+                    paramMetadata.routeParamName !== undefined
+                        ? req[routeParamKey][paramMetadata.routeParamName]
+                        : req[routeParamKey];
+
+                const instance = await this.transferRouteParamToInstance(
+                    paramMetadata.methodParamType,
+                    routeParamValue,
+                );
+
+                const errors = await validate(instance);
+                if (errors.length > 0) {
+                    throw new ValidationError(
+                        errors
+                            .flatMap(err => (err.constraints ? Object.values(err.constraints) : []))
+                            .join("; "),
+                    );
+                }
+
+                methodArgs[paramMetadata.methodParamIndex] = instance;
+            }
+        }
+    }
+
+    private async applyPostInterceptors(options: PostInterceptorOptions) {
+        const { res, classMetadata, methodName } = options;
+
+        this.assignStatusCode({ res, classMetadata, methodName });
     }
 
     private async checkForAuthorization(
@@ -341,15 +402,9 @@ export class Route {
         return instance;
     }
 
-    private assignContext(
-        req: Req,
-        res: Res,
-        classMetadata: ClassMetadata,
-        methodName: string,
-        methodArgs: string[],
-        userId: string | undefined,
-        requestId: string,
-    ) {
+    private assignContext(options: AssignContextOptions) {
+        const { req, res, classMetadata, methodName, methodArgs, requestId, userId } = options;
+
         const ctxMetadata: CtxMetadata | undefined = Reflect.getMetadata(
             KEY_ROUTE_CTX,
             classMetadata.clazz,
@@ -372,7 +427,9 @@ export class Route {
         methodArgs[ctxMetadata.index] = ctxMetadata.source ? ctx[ctxMetadata.source] : ctx;
     }
 
-    private assignStatusCode(res: Res, classMetadata: ClassMetadata, methodName: string) {
+    private assignStatusCode(options: AssignStatusCodeOptions) {
+        const { res, classMetadata, methodName } = options;
+
         res.statusCode =
             Reflect.getMetadata(KEY_ROUTE_STATUS_CODE, classMetadata.clazz, methodName) ?? 200;
     }
