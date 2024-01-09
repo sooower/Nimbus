@@ -5,6 +5,7 @@ import { Permission } from "@/entities/accounts/permission";
 import { Role } from "@/entities/accounts/role";
 
 import { CacheClient } from "../components/cacheClient";
+import { globalConfig } from "../components/config";
 import { DS } from "../components/dataSource";
 import { Jwt } from "../components/jwt";
 import { logger } from "../components/logger";
@@ -135,7 +136,10 @@ export class Route {
                     await this.initializeHandler({ classMetadata, methodName, methodArgs }),
                 );
 
-                this.engine.use(routeClassMetadata.routePrefix, router);
+                this.engine.use(
+                    Commons.cutRoutePath(globalConfig.apiPrefix) + routeClassMetadata.routePrefix,
+                    router,
+                );
 
                 logger.debug(
                     `${
