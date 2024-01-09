@@ -3,7 +3,7 @@
     "version": "0.0.1",
     "main": "dist/main.js",
     "scripts": {
-        "dev": "ts-node-dev src/main.ts",
+        "dev": "ts-node-dev -r tsconfig-paths/register src/main.ts",
         "build": "rimraf dist && tsc",
         "prod": "npm run build && NODE_ENV=prod node -r tsconfig-paths/register dist/main.js",
         "prettier": "prettier --config .prettierrc --write ./src/**/**/*.ts"
