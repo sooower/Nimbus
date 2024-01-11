@@ -10,6 +10,7 @@ import {
     KEY_ROUTE_STATUS_CODE,
 } from "../constants";
 import { MiddlewareFunc } from "../types";
+import { Commons } from "../utils/commons";
 import { Metadatas } from "../utils/metadatas";
 
 export type CtxSource = "req" | "res" | "requestId" | "query" | "params" | "headers" | "body";
@@ -56,7 +57,7 @@ export type ParamMetadata = {
 };
 
 export function Controller(prefix?: string): ClassDecorator {
-    const routePrefix = prefix == "/" || prefix === undefined ? "" : cutRoutePath(prefix);
+    const routePrefix = prefix == "/" || prefix === undefined ? "" : Commons.cutRoutePath(prefix);
     const routeClassMetadata: RouteClassMetadata = { routePrefix };
 
     return (target: object) => {
@@ -96,7 +97,7 @@ export function Ctx(source?: CtxSource): ParameterDecorator {
 function createRouteMethodDecorator(method: RouteMethod) {
     return (path?: string, ...middlewares: MiddlewareFunc[]): MethodDecorator => {
         return (target: object, key: string | symbol, descriptor: PropertyDescriptor) => {
-            path = path == "" || path === undefined ? "/" : cutRoutePath(path);
+            path = path == "" || path === undefined ? "/" : Commons.cutRoutePath(path);
             const routeMetadata: RouteMetadata = { path, method, middlewares };
             Reflect.defineMetadata(KEY_ROUTE_PATH, routeMetadata, target.constructor, key);
         };
@@ -120,14 +121,4 @@ function createRouteParamDecorator(metadataKey: string) {
             Metadatas.extendArray(metadataKey, paramMetadata, target.constructor, key);
         };
     };
-}
-
-function cutRoutePath(str: string): string {
-    if (!str.startsWith("/")) {
-        str = "/" + str;
-    }
-    if (str.endsWith("/")) {
-        str = str.slice(0, str.length - 1);
-    }
-    return str;
 }

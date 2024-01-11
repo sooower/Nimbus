@@ -43,4 +43,14 @@ export const Commons = {
 
         return result;
     },
+
+    cutRoutePath(str: string): string {
+        if (!str.startsWith("/")) {
+            str = "/" + str;
+        }
+        if (str.endsWith("/")) {
+            str = str.slice(0, str.length - 1);
+        }
+        return str;
+    },
 };
