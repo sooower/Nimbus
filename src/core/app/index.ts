@@ -44,7 +44,7 @@ export class Application {
         engine.use(errorMiddleware);
 
         engine.listen(globalConfig.port, () => {
-            logger.info(`Server started on ${globalConfig.port} (*￣︶￣).`);
+            logger.info(`Server started on ${globalConfig.port}.`);
         });
     }
 
