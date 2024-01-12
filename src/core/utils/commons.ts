@@ -21,7 +21,7 @@ export const Commons = {
         return args.join("@").replace(/:/g, "@");
     },
 
-    getParamNamesWithIndex(func: Function): Map<string, number> {
+    getParamNamesWithIndex(func: (...args: any[]) => Promise<any>): Map<string, number> {
         const funcStr: string = func.toString();
         const argsStr: string = funcStr.substring(funcStr.indexOf("(") + 1, funcStr.indexOf(")"));
         const argNames: string[] = argsStr.split(",").map(arg => arg.trim());

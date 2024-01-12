@@ -18,7 +18,7 @@ export function Cacheable(options: CacheSetOptions): MethodDecorator {
         const originalMethod = descriptor.value;
 
         descriptor.value = async function (...args: any[]) {
-            let key: string = parseKeyWithMethodsParams(options.key, originalMethod, args);
+            const key = parseKeyWithMethodsParams(options.key, originalMethod, args);
 
             const cacheKey = Commons.generateCacheKey(options.scope, key);
 
@@ -56,7 +56,7 @@ export function CachePut(options: CacheSetOptions): MethodDecorator {
 
             // Cache data
             if (res) {
-                let key = parseKeyWithMethodsParams(options.key, originalMethod, args);
+                const key = parseKeyWithMethodsParams(options.key, originalMethod, args);
                 const cacheKey = Commons.generateCacheKey(options.scope, key);
 
                 options.ttl > 0
@@ -82,7 +82,7 @@ export function CacheEvict(options: CacheRemoveOptions): MethodDecorator {
             const res = await originalMethod.apply(this, args);
 
             // Remove cache
-            let key = parseKeyWithMethodsParams(options.key, originalMethod, args);
+            const key = parseKeyWithMethodsParams(options.key, originalMethod, args);
             const cacheKey = Commons.generateCacheKey(options.scope, key);
             if (await CacheClient.has(cacheKey)) {
                 await CacheClient.remove(cacheKey);
@@ -104,7 +104,11 @@ export function CacheEvict(options: CacheRemoveOptions): MethodDecorator {
  * @param methodArgs Cache methods args
  * @returns Key with parsed params value
  */
-function parseKeyWithMethodsParams(originStr: string, method: Function, methodArgs: any[]) {
+function parseKeyWithMethodsParams(
+    originStr: string,
+    method: (...args: any[]) => Promise<any>,
+    methodArgs: any[],
+) {
     let res: string = originStr;
 
     // Set cache key with params value
