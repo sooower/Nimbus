@@ -1,4 +1,7 @@
 export default {
+    app: {
+        printBindRoutesLog: true,
+    },
     logger: {
         level: "debug",
     },

@@ -121,13 +121,15 @@ export class Route {
                     router,
                 );
 
-                logger.debug(
-                    `${
-                        classMetadata.clazz.name
-                    }::${methodName} ${routeMetadata.method.toUpperCase()} ${
-                        routeClassMetadata.routePrefix + routeMetadata.path
-                    }.`,
-                );
+                if (globalConfig.app?.printBindRoutesLog) {
+                    logger.debug(
+                        `${
+                            classMetadata.clazz.name
+                        }::${methodName} ${routeMetadata.method.toUpperCase()} ${
+                            routeClassMetadata.routePrefix + routeMetadata.path
+                        }.`,
+                    );
+                }
             }
         }
 
