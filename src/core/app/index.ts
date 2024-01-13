@@ -14,12 +14,12 @@ type LifecycleEvents = {
     /**
      * Do something before application started.
      */
-    onReady: Function;
+    onReady: () => Promise<void>;
 
     /**
      * Do something before application shutdown.
      */
-    onClose: Function;
+    onClose: () => Promise<void>;
 };
 
 export class Application {

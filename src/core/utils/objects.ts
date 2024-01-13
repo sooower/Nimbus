@@ -24,10 +24,10 @@ export const Objects = {
         const merged = { ...to };
 
         for (const key in from) {
-            if (from.hasOwnProperty(key)) {
+            if (Object.prototype.hasOwnProperty.call(from, key)) {
                 if (
                     typeof from[key] === "object" &&
-                    to.hasOwnProperty(key) &&
+                    Object.prototype.hasOwnProperty.call(to, key) &&
                     typeof to[key] === "object"
                 ) {
                     merged[key] = Objects.merge(from[key], to[key]);
