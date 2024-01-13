@@ -1,6 +1,7 @@
 export default {
     app: {
         printBindRoutesLog: true,
+        bannerPath: "banner.txt",
     },
     logger: {
         level: "debug",

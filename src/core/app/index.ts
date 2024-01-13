@@ -3,6 +3,7 @@ import "reflect-metadata";
 import bodyParser from "body-parser";
 import express from "express";
 
+import { printBanner } from "../components/bannerPrinter";
 import { globalConfig } from "../components/config";
 import { logger } from "../components/logger";
 import { corsMiddleware } from "../middlewares/corsMiddleware";
@@ -29,6 +30,8 @@ export class Application {
      * The bootstrap to running an application.
      */
     async run() {
+        printBanner();
+
         await this.registerLifecycleEvents();
 
         const engine = express();
