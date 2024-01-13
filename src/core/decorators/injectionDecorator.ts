@@ -1,9 +1,20 @@
-import { KEY_INJECTABLE, KEY_LAZY_INJECT } from "../constants";
+import {
+    KEY_CTOR_CIRCULAR_INJECT,
+    KEY_INJECT,
+    KEY_INJECTABLE,
+    KEY_PROP_CIRCULAR_INJECT,
+} from "../constants";
+import { DecoratorError } from "../errors";
 import { Metadatas } from "../utils/metadatas";
 
-export type ConstructorParamMetadata = {
+export type ConstructorMetadata = {
     index: number;
-    instantiateFn?: () => any;
+    clazz?: () => any;
+};
+
+export type PropertyMetadata = {
+    name: string;
+    clazz: any | (() => any);
 };
 
 export function Injectable(): ClassDecorator {
@@ -12,12 +23,39 @@ export function Injectable(): ClassDecorator {
     };
 }
 
-export function LazyInject(instantiateFn?: () => any): ParameterDecorator {
-    return (target: object, key: string | symbol | undefined, index: number) => {
-        const metadata: ConstructorParamMetadata = {
+export function CircularInject(
+    clazz: (...args: any[]) => any,
+): ParameterDecorator & PropertyDecorator {
+    return (target: object, key?: string | symbol | undefined, index?: number) => {
+        if (key !== undefined) {
+            const metadata: PropertyMetadata = {
+                name: String(key),
+                clazz,
+            };
+            Metadatas.extendArray(KEY_PROP_CIRCULAR_INJECT, metadata, target.constructor);
+
+            return;
+        }
+
+        if (index === undefined) {
+            throw new DecoratorError(`Parameter index must be provided.`);
+        }
+
+        const metadata: ConstructorMetadata = {
             index,
-            instantiateFn,
+            clazz,
         };
-        Metadatas.extendArray(KEY_LAZY_INJECT, metadata, target);
+        Metadatas.extendArray(KEY_CTOR_CIRCULAR_INJECT, metadata, target);
+    };
+}
+
+export function Inject(): PropertyDecorator {
+    return (target: object, key: string | symbol) => {
+        const clazz = Reflect.getMetadata("design:type", target, key);
+        const metadata: PropertyMetadata = {
+            name: String(key),
+            clazz,
+        };
+        Metadatas.extendArray(KEY_INJECT, metadata, target.constructor);
     };
 }

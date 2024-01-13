@@ -48,3 +48,9 @@ export class CacheError extends ServiceError {
         super(message);
     }
 }
+
+export class DecoratorError extends ServiceError {
+    constructor(message: string) {
+        super(message);
+    }
+}

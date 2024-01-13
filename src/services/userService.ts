@@ -3,7 +3,7 @@ import crypto from "crypto";
 import { DS } from "@/core/components/dataSource";
 import { Jwt } from "@/core/components/jwt";
 import { KEY_USER_TOKEN } from "@/core/constants";
-import { Injectable } from "@/core/decorators/injectionDecorator";
+import { Inject, Injectable } from "@/core/decorators/injectionDecorator";
 import { ServiceError } from "@/core/errors";
 import { RedisService, TimeUnit } from "@/core/services/redisService";
 import { Commons } from "@/core/utils/commons";
@@ -12,9 +12,10 @@ import { UserLoginDto, UserRegisterDto } from "@/models/accounts/user";
 
 @Injectable()
 export class UserService {
-    private userRepository = DS.getRepository(User);
+    @Inject()
+    private redisService!: RedisService;
 
-    constructor(private redisService: RedisService) {}
+    private userRepository = DS.getRepository(User);
 
     async register(userRegisterDto: UserRegisterDto) {
         if (userRegisterDto.password !== userRegisterDto.confirmedPassword) {

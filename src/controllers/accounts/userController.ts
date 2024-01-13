@@ -1,7 +1,7 @@
 import { KEY_USER_TOKEN } from "@/core/constants";
 import { NonAuth } from "@/core/decorators/authorizationDecorator";
 import { Cacheable } from "@/core/decorators/cacheDecorator";
-import { LazyInject } from "@/core/decorators/injectionDecorator";
+import { CircularInject, Inject } from "@/core/decorators/injectionDecorator";
 import { Permis } from "@/core/decorators/permissionDecorator";
 import {
     Body,
@@ -21,12 +21,11 @@ import { UserService } from "@/services/userService";
 
 @Controller("/users")
 export class UserController {
-    constructor(
-        @LazyInject(() => UserService)
-        private userService: UserService,
+    @Inject()
+    private redisService!: RedisService;
 
-        private redisService: RedisService,
-    ) {}
+    @CircularInject(type => UserService)
+    private userService!: UserService;
 
     @Post("/register")
     @NonAuth()

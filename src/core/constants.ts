@@ -8,7 +8,9 @@ export const KEY_ROUTE_BODY = "route:body";
 export const KEY_ROUTE_CTX = "route:context";
 
 export const KEY_INJECTABLE = "injectable";
-export const KEY_LAZY_INJECT = "lazyInject";
+export const KEY_INJECT = "inject";
+export const KEY_CTOR_CIRCULAR_INJECT = "ctorCircularInject";
+export const KEY_PROP_CIRCULAR_INJECT = "propCircularInject";
 
 export const KEY_PARSE_TYPE = "parseType";
 export const KEY_PARSE_ARRAY_TYPE = "parseArrayType";
