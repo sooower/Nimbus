@@ -1,13 +1,17 @@
+import stringify from "safe-stable-stringify";
+
 import { objectsFactory } from "@/main";
 
 import { logger } from "../components/logger";
-import { RedisService } from "../services/redisService";
+import { CacheError } from "../errors";
+import { RedisService, TimeUnit } from "../services/redisService";
 import { Commons } from "../utils/commons";
 
 type CacheSetOptions = {
     scope: string;
     key: string;
     ttl: number;
+    timeUnit?: TimeUnit;
 };
 
 type CacheRemoveOptions = {
@@ -16,12 +20,12 @@ type CacheRemoveOptions = {
 };
 
 export function Cacheable(options: CacheSetOptions): MethodDecorator {
-    const redisService = objectsFactory.getObject<RedisService>("RedisService");
-
     return (target: object, key: string | symbol, descriptor: PropertyDescriptor) => {
         const originalMethod = descriptor.value;
 
         descriptor.value = async function (...args: any[]) {
+            const redisService = objectsFactory.getObject<RedisService>("RedisService");
+
             const key = parseKeyWithMethodsParams(options.key, originalMethod, args);
 
             const cacheKey = Commons.generateCacheKey(options.scope, key);
@@ -35,12 +39,14 @@ export function Cacheable(options: CacheSetOptions): MethodDecorator {
             const res = await originalMethod.apply(this, args);
 
             // Cache data
-            if (res) {
-                options.ttl > 0
-                    ? await redisService.setWithTTL(cacheKey, res, options.ttl)
-                    : await redisService.set(cacheKey, res);
+            if (res !== undefined) {
+                if (options.ttl <= 0) {
+                    throw new CacheError(`Cache key ${cacheKey} must have a TTL greater than 0.`);
+                }
+
+                await redisService.setWithTTL(cacheKey, res, options.ttl, options.timeUnit);
                 logger.debug(
-                    `Cached data, Key <${cacheKey}> set with value <${res}> and TTL <${options.ttl}> second.`,
+                    `Cached data, Key <${cacheKey}> set with TTL <${options.ttl}> second.`,
                 );
             }
 
@@ -52,24 +58,26 @@ export function Cacheable(options: CacheSetOptions): MethodDecorator {
 }
 
 export function CachePut(options: CacheSetOptions): MethodDecorator {
-    const redisService = objectsFactory.getObject<RedisService>("RedisService");
-
     return (target: object, key: string | symbol, descriptor: PropertyDescriptor) => {
         const originalMethod = descriptor.value;
 
         descriptor.value = async function (...args: any[]) {
+            const redisService = objectsFactory.getObject<RedisService>("RedisService");
+
             const res = await originalMethod.apply(this, args);
 
             // Cache data
-            if (res) {
+            if (res !== undefined) {
                 const key = parseKeyWithMethodsParams(options.key, originalMethod, args);
                 const cacheKey = Commons.generateCacheKey(options.scope, key);
 
-                options.ttl > 0
-                    ? await redisService.setWithTTL(cacheKey, res, options.ttl)
-                    : await redisService.set(cacheKey, res);
+                if (options.ttl <= 0) {
+                    throw new CacheError(`Cache key ${cacheKey} must have a TTL greater than 0.`);
+                }
+
+                await redisService.setWithTTL(cacheKey, res, options.ttl, options.timeUnit);
                 logger.debug(
-                    `Cached data, Key <${cacheKey}> set with value <${res}> and TTL <${options.ttl}> second.`,
+                    `Cached data, Key <${cacheKey}> set with TTL <${options.ttl}> second.`,
                 );
             }
 
@@ -81,12 +89,12 @@ export function CachePut(options: CacheSetOptions): MethodDecorator {
 }
 
 export function CacheEvict(options: CacheRemoveOptions): MethodDecorator {
-    const redisService = objectsFactory.getObject<RedisService>("RedisService");
-
     return (target: object, key: string | symbol, descriptor: PropertyDescriptor) => {
         const originalMethod = descriptor.value;
 
         descriptor.value = async function (...args: any[]) {
+            const redisService = objectsFactory.getObject<RedisService>("RedisService");
+
             const res = await originalMethod.apply(this, args);
 
             // Remove cache
@@ -124,7 +132,7 @@ function parseKeyWithMethodsParams(
         const paramNamesMap = Commons.getParamNamesWithIndex(method);
         for (const [arg, index] of paramNamesMap) {
             if (arg === originStr.slice(1)) {
-                res = methodArgs[index];
+                res = stringify(methodArgs[index]) ?? "";
                 break;
             }
         }

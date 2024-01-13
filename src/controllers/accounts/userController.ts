@@ -1,5 +1,6 @@
 import { KEY_USER_TOKEN } from "@/core/constants";
 import { NonAuth } from "@/core/decorators/authorizationDecorator";
+import { Cacheable } from "@/core/decorators/cacheDecorator";
 import { LazyInject } from "@/core/decorators/injectionDecorator";
 import { Permis } from "@/core/decorators/permissionDecorator";
 import {
@@ -23,6 +24,7 @@ export class UserController {
     constructor(
         @LazyInject(() => UserService)
         private userService: UserService,
+
         private redisService: RedisService,
     ) {}
 
@@ -43,7 +45,7 @@ export class UserController {
         const res = await this.redisService.remove(Commons.generateCacheKey(KEY_USER_TOKEN, id));
 
         if (!res) {
-            throw new ServiceError("Please login first.");
+            throw new ServiceError(`Failed to logout user <${id}>.`);
         }
 
         return {};
@@ -51,6 +53,7 @@ export class UserController {
 
     @Get()
     @Permis(["user:read"])
+    @Cacheable({ scope: "user", key: ":getUsersDto", ttl: 300 })
     async getUsers(@Query() getUsersDto: GetUsersDto) {
         return getUsersDto;
     }

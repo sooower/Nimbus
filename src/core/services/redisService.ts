@@ -6,6 +6,15 @@ import { logger } from "../components/logger";
 import { Injectable } from "../decorators/injectionDecorator";
 import { Objects } from "../utils/objects";
 
+export enum TimeUnit {
+    Second,
+    Minute,
+    Hour,
+    Day,
+    Week,
+    Month,
+}
+
 @Injectable()
 export class RedisService {
     private redis: Redis;
@@ -28,15 +37,15 @@ export class RedisService {
         return true;
     }
 
-    async setWithTTL(key: string, value: any, ttl = 300) {
+    async setWithTTL(key: string, value: any, ttl = 300, timeUnit = TimeUnit.Second) {
         if (stringify(value) !== undefined) {
-            return !!this.redis.set(key, stringify(value)!, "EX", ttl);
+            return !!this.redis.set(key, stringify(value)!, "EX", parseSeconds(ttl, timeUnit));
         }
 
         return true;
     }
 
-    async setnxWithTTL(key: string, value: string, ttl = 300) {
+    async setnxWithTTL(key: string, value: string, ttl = 300, timeUnit = TimeUnit.Second) {
         const res = !!(await this.redis.setnx(key, value));
 
         if (!res) {
@@ -44,7 +53,8 @@ export class RedisService {
 
             return false;
         }
-        await this.redis.expire(key, ttl);
+
+        await this.redis.expire(key, parseSeconds(ttl, timeUnit));
 
         return true;
     }
@@ -65,5 +75,22 @@ export class RedisService {
 
     async quit() {
         return (await this.redis.quit()) === "OK";
+    }
+}
+
+function parseSeconds(ttl: number, timeUnit: TimeUnit) {
+    switch (timeUnit) {
+        case TimeUnit.Second:
+            return ttl;
+        case TimeUnit.Minute:
+            return ttl * 60;
+        case TimeUnit.Hour:
+            return ttl * 60 * 60;
+        case TimeUnit.Day:
+            return ttl * 60 * 60 * 24;
+        case TimeUnit.Week:
+            return ttl * 60 * 60 * 24 * 7;
+        case TimeUnit.Month:
+            return ttl * 60 * 60 * 24 * 30;
     }
 }

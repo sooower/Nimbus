@@ -1,10 +1,18 @@
 import crypto from "crypto";
+import stringify from "safe-stable-stringify";
 
 export const Commons = {
     getEnvBaseDirAndExt() {
         const env = process.env.NODE_ENV ?? "dev";
         const [baseDir, ext] = env === "prod" ? ["dist", "js"] : ["src", "ts"];
         return { env, baseDir, ext };
+    },
+
+    hashString(str: string): string {
+        if (typeof str !== "string") {
+            str = stringify(str) ?? "";
+        }
+        return crypto.createHash("sha256").update(str).digest("hex");
     },
 
     encryptPassword(password: string, salt: string) {
@@ -17,8 +25,8 @@ export const Commons = {
         return encryptedPassword === passwordHash;
     },
 
-    generateCacheKey(...args: string[]) {
-        return args.join("@").replace(/:/g, "@");
+    generateCacheKey(scope: string, ...keys: string[]) {
+        return `${scope}@${Commons.hashString(keys.join("|"))}`;
     },
 
     getParamNamesWithIndex(func: (...args: any[]) => Promise<any>): Map<string, number> {

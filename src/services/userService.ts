@@ -5,7 +5,7 @@ import { Jwt } from "@/core/components/jwt";
 import { KEY_USER_TOKEN } from "@/core/constants";
 import { Injectable } from "@/core/decorators/injectionDecorator";
 import { ServiceError } from "@/core/errors";
-import { RedisService } from "@/core/services/redisService";
+import { RedisService, TimeUnit } from "@/core/services/redisService";
 import { Commons } from "@/core/utils/commons";
 import { User } from "@/entities/accounts/user";
 import { UserLoginDto, UserRegisterDto } from "@/models/accounts/user";
@@ -62,7 +62,12 @@ export class UserService {
 
         // Jwt signature
         const token = Jwt.sign({ userId: userRecord.id });
-        await this.redisService.set(Commons.generateCacheKey(KEY_USER_TOKEN, userRecord.id), token);
+        await this.redisService.setWithTTL(
+            Commons.generateCacheKey(KEY_USER_TOKEN, String(userRecord.id)),
+            token,
+            30,
+            TimeUnit.Day,
+        );
 
         return token;
     }

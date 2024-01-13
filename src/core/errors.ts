@@ -42,3 +42,9 @@ export class ValidationError extends ServiceError {
         super(message);
     }
 }
+
+export class CacheError extends ServiceError {
+    constructor(message: string) {
+        super(message);
+    }
+}
