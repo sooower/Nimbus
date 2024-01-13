@@ -40,6 +40,7 @@ import {
 import { RedisService } from "../services/redisService";
 import { Context, Next, Req, Res } from "../types";
 import { Commons } from "../utils/commons";
+import { Objects } from "../utils/objects";
 import { ObjectsFactory } from "./objectsFactory";
 
 type InitializeHandlerOptions = {
@@ -205,18 +206,38 @@ export class Route {
                         ? req[routeParamKey][paramMetadata.routeParamName]
                         : req[routeParamKey];
 
-                const instance = await this.transferRouteParamToInstance(
-                    paramMetadata.methodParamType,
-                    routeParamValue,
-                );
-
-                const errors = await validate(instance);
-                if (errors.length > 0) {
-                    throw new ValidationError(
-                        errors
-                            .flatMap(err => (err.constraints ? Object.values(err.constraints) : []))
-                            .join("; "),
+                let instance: any = routeParamKey;
+                if (Objects.isObject(routeParamValue)) {
+                    instance = await this.transferRouteParamToInstance(
+                        paramMetadata.methodParamType,
+                        routeParamValue,
                     );
+
+                    const errors = await validate(instance);
+                    if (errors.length > 0) {
+                        throw new ValidationError(
+                            errors
+                                .flatMap(err =>
+                                    err.constraints ? Object.values(err.constraints) : [],
+                                )
+                                .join("; "),
+                        );
+                    }
+                } else {
+                    switch (typeof routeParamValue) {
+                        case "string": {
+                            instance = String(routeParamValue);
+                            break;
+                        }
+                        case "number": {
+                            instance = Number(routeParamValue);
+                            break;
+                        }
+                        case "boolean": {
+                            instance = Boolean(routeParamValue);
+                            break;
+                        }
+                    }
                 }
 
                 methodArgs[paramMetadata.methodParamIndex] = instance;
@@ -259,7 +280,7 @@ export class Route {
 
         const userId: string = payload.userId;
         const userToken = await this.redisService.get(
-            Commons.generateCacheKey(KEY_USER_TOKEN, userId!),
+            Commons.generateCacheKey(KEY_USER_TOKEN, userId),
         );
         if (userToken === null) {
             throw new AuthorizationError(`Please login first.`);
