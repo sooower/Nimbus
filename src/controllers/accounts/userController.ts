@@ -1,4 +1,3 @@
-import { CacheClient } from "@/core/components/cacheClient";
 import { KEY_USER_TOKEN } from "@/core/constants";
 import { NonAuth } from "@/core/decorators/authorizationDecorator";
 import { LazyInject } from "@/core/decorators/injectionDecorator";
@@ -14,6 +13,7 @@ import {
     Query,
 } from "@/core/decorators/routeDecorator";
 import { ServiceError } from "@/core/errors";
+import { RedisService } from "@/core/services/redisService";
 import { Commons } from "@/core/utils/commons";
 import { GetUsersDto, UserLoginDto, UserRegisterDto } from "@/models/accounts/user";
 import { UserService } from "@/services/userService";
@@ -23,6 +23,7 @@ export class UserController {
     constructor(
         @LazyInject(() => UserService)
         private userService: UserService,
+        private redisService: RedisService,
     ) {}
 
     @Post("/register")
@@ -39,7 +40,7 @@ export class UserController {
 
     @Put("/logout/:id")
     async logout(@Param("id") id: string) {
-        const res = await CacheClient.remove(Commons.generateCacheKey(KEY_USER_TOKEN, id));
+        const res = await this.redisService.remove(Commons.generateCacheKey(KEY_USER_TOKEN, id));
 
         if (!res) {
             throw new ServiceError("Please login first.");

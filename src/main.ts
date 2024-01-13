@@ -1,9 +1,12 @@
 import { Application } from "./core/app";
-import { CacheClient } from "./core/components/cacheClient";
+import { ObjectsFactory } from "./core/app/objectsFactory";
 import { DS } from "./core/components/dataSource";
 import { logger } from "./core/components/logger";
+import { RedisService } from "./core/services/redisService";
 
-new Application({
+export const objectsFactory = new ObjectsFactory();
+
+new Application(objectsFactory, {
     async onReady() {
         await DS.initialize();
         logger.info("Data Source initialized.");
@@ -13,7 +16,7 @@ new Application({
         await DS.destroy();
         logger.info("Data Source destroyed.");
 
-        await CacheClient.quit();
-        logger.info("Cache client closed.");
+        await objectsFactory.getObject<RedisService>("RedisService").quit();
+        logger.info(`"RedisService" destroyed.`);
     },
 }).run();

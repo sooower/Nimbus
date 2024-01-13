@@ -1,5 +1,7 @@
-import { CacheClient } from "../components/cacheClient";
+import { objectsFactory } from "@/main";
+
 import { logger } from "../components/logger";
+import { RedisService } from "../services/redisService";
 import { Commons } from "../utils/commons";
 
 type CacheSetOptions = {
@@ -14,6 +16,8 @@ type CacheRemoveOptions = {
 };
 
 export function Cacheable(options: CacheSetOptions): MethodDecorator {
+    const redisService = objectsFactory.getObject<RedisService>("RedisService");
+
     return (target: object, key: string | symbol, descriptor: PropertyDescriptor) => {
         const originalMethod = descriptor.value;
 
@@ -22,10 +26,10 @@ export function Cacheable(options: CacheSetOptions): MethodDecorator {
 
             const cacheKey = Commons.generateCacheKey(options.scope, key);
 
-            if (await CacheClient.has(cacheKey)) {
+            if (await redisService.has(cacheKey)) {
                 logger.debug("Fetching data from cache.");
 
-                return await CacheClient.get(cacheKey);
+                return await redisService.get(cacheKey);
             }
 
             const res = await originalMethod.apply(this, args);
@@ -33,8 +37,8 @@ export function Cacheable(options: CacheSetOptions): MethodDecorator {
             // Cache data
             if (res) {
                 options.ttl > 0
-                    ? await CacheClient.setWithTTL(cacheKey, res, options.ttl)
-                    : await CacheClient.set(cacheKey, res);
+                    ? await redisService.setWithTTL(cacheKey, res, options.ttl)
+                    : await redisService.set(cacheKey, res);
                 logger.debug(
                     `Cached data, Key <${cacheKey}> set with value <${res}> and TTL <${options.ttl}> second.`,
                 );
@@ -48,6 +52,8 @@ export function Cacheable(options: CacheSetOptions): MethodDecorator {
 }
 
 export function CachePut(options: CacheSetOptions): MethodDecorator {
+    const redisService = objectsFactory.getObject<RedisService>("RedisService");
+
     return (target: object, key: string | symbol, descriptor: PropertyDescriptor) => {
         const originalMethod = descriptor.value;
 
@@ -60,8 +66,8 @@ export function CachePut(options: CacheSetOptions): MethodDecorator {
                 const cacheKey = Commons.generateCacheKey(options.scope, key);
 
                 options.ttl > 0
-                    ? await CacheClient.setWithTTL(cacheKey, res, options.ttl)
-                    : await CacheClient.set(cacheKey, res);
+                    ? await redisService.setWithTTL(cacheKey, res, options.ttl)
+                    : await redisService.set(cacheKey, res);
                 logger.debug(
                     `Cached data, Key <${cacheKey}> set with value <${res}> and TTL <${options.ttl}> second.`,
                 );
@@ -75,6 +81,8 @@ export function CachePut(options: CacheSetOptions): MethodDecorator {
 }
 
 export function CacheEvict(options: CacheRemoveOptions): MethodDecorator {
+    const redisService = objectsFactory.getObject<RedisService>("RedisService");
+
     return (target: object, key: string | symbol, descriptor: PropertyDescriptor) => {
         const originalMethod = descriptor.value;
 
@@ -84,8 +92,8 @@ export function CacheEvict(options: CacheRemoveOptions): MethodDecorator {
             // Remove cache
             const key = parseKeyWithMethodsParams(options.key, originalMethod, args);
             const cacheKey = Commons.generateCacheKey(options.scope, key);
-            if (await CacheClient.has(cacheKey)) {
-                await CacheClient.remove(cacheKey);
+            if (await redisService.has(cacheKey)) {
+                await redisService.remove(cacheKey);
                 logger.debug(`Removed cache, Key <${cacheKey}>.`);
             }
 

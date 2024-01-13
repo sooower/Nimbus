@@ -24,7 +24,10 @@ type LifecycleEvents = {
 };
 
 export class Application {
-    constructor(private lifecycleEvents: LifecycleEvents) {}
+    constructor(
+        private objectsFactory: ObjectsFactory,
+        private lifecycleEvents: LifecycleEvents,
+    ) {}
 
     /**
      * The bootstrap to running an application.
@@ -39,10 +42,7 @@ export class Application {
         engine.use(corsMiddleware);
         engine.use(bodyParser.json());
 
-        const objectsFactory = new ObjectsFactory();
-        objectsFactory.initialize();
-
-        await new Route(objectsFactory, engine).initialize();
+        await new Route(this.objectsFactory, engine).initialize();
 
         engine.use(errorMiddleware);
 
@@ -57,10 +57,14 @@ export class Application {
 
         process.on("SIGINT", async () => {
             await onClose();
+            this.objectsFactory.destroy();
+
             process.exit(0);
         });
         process.on("SIGTERM", async () => {
             await onClose();
+            this.objectsFactory.destroy();
+
             process.exit(0);
         });
     }

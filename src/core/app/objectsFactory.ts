@@ -12,14 +12,26 @@ import { Objects } from "../utils/objects";
 export class ObjectsFactory {
     private classMetadataContainer: Map<string, ClassMetadata> = new Map();
     private earlySingletonObjects: Map<string, any> = new Map();
-    private singletonObjects: Map<string, any> = new Map();
+    private singletonObjectsFactory: Map<string, any> = new Map();
 
-    getSingletonObjects() {
-        return this.singletonObjects;
+    constructor() {
+        this.initialize();
+    }
+
+    destroy() {
+        this.classMetadataContainer == undefined;
+        this.earlySingletonObjects == undefined;
+        this.singletonObjectsFactory == undefined;
+
+        logger.info("Objects factory destroyed.");
     }
 
     getClassMetadataContainer() {
         return this.classMetadataContainer;
+    }
+
+    getObject<T>(name: string): T {
+        return this.singletonObjectsFactory.get(name);
     }
 
     initialize() {
@@ -87,12 +99,17 @@ export class ObjectsFactory {
             );
         }
 
-        const instance = new classMetadata.clazz();
+        let instance = this.singletonObjectsFactory.get(classMetadata.clazz.name);
+        if (instance !== undefined) {
+            return;
+        }
+
+        instance = new classMetadata.clazz();
         this.earlySingletonObjects.set(classMetadata.clazz.name, instance);
 
         this.populateProperties(instance, classMetadata);
 
-        this.singletonObjects.set(classMetadata.clazz.name, instance);
+        this.singletonObjectsFactory.set(classMetadata.clazz.name, instance);
         this.earlySingletonObjects.delete(classMetadata.clazz.name);
     }
 
@@ -126,7 +143,7 @@ export class ObjectsFactory {
 
     private getObjectInstance(className: string) {
         let instance: any;
-        instance = this.singletonObjects.get(className);
+        instance = this.singletonObjectsFactory.get(className);
         if (instance !== undefined) {
             return instance;
         }
