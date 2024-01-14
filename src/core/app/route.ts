@@ -6,7 +6,7 @@ import { Role } from "@/entities/accounts/role";
 
 import { cacheClient } from "../components/cacheClient";
 import { globalConfig } from "../components/config";
-import { DS } from "../components/dataSource";
+import { dataSource } from "../components/dataSource";
 import { Jwt } from "../components/jwt";
 import { logger } from "../components/logger";
 import {
@@ -298,7 +298,8 @@ export class Route {
         }
 
         // Do not check for permission if role is admin
-        const roleRecords = await DS.getRepository(Role)
+        const roleRecords = await dataSource
+            .getRepository(Role)
             .createQueryBuilder("role")
             .innerJoin("role.users", "user")
             .where("user.id = :userId", { userId })
@@ -311,7 +312,8 @@ export class Route {
         }
 
         // Check for permissions
-        const permissionRecords = await DS.getRepository(Permission)
+        const permissionRecords = await dataSource
+            .getRepository(Permission)
             .createQueryBuilder("permission")
             .innerJoin("permission.roles", "role")
             .innerJoin("role.users", "user")

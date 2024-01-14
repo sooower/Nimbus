@@ -3,7 +3,7 @@ import { DataSource, DataSourceOptions } from "typeorm";
 import { Objects } from "../utils/objects";
 import { globalConfig } from "./config";
 
-export const DS = new DataSource(
+export const dataSource = new DataSource(
     Objects.merge<DataSourceOptions>(globalConfig.dataSource, {
         type: "postgres",
         host: "localhost",
