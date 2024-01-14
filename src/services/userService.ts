@@ -12,10 +12,9 @@ import { UserLoginDto, UserRegisterDto } from "@/models/accounts/user";
 
 @Injectable()
 export class UserService {
-    @Inject()
-    private redisService!: RedisService;
-
     private userRepository = DS.getRepository(User);
+
+    constructor(private redisService: RedisService) {}
 
     async register(userRegisterDto: UserRegisterDto) {
         if (userRegisterDto.password !== userRegisterDto.confirmedPassword) {

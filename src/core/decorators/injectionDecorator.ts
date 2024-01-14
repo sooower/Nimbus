@@ -7,12 +7,12 @@ import {
 import { DecoratorError } from "../errors";
 import { Metadatas } from "../utils/metadatas";
 
-export type ConstructorMetadata = {
+export type ConstructorParamsClassMetadata = {
     index: number;
     clazz?: () => any;
 };
 
-export type PropertyMetadata = {
+export type PropertyClassMetadata = {
     name: string;
     clazz: any | (() => any);
 };
@@ -28,7 +28,7 @@ export function CircularInject(
 ): ParameterDecorator & PropertyDecorator {
     return (target: object, key?: string | symbol | undefined, index?: number) => {
         if (key !== undefined) {
-            const metadata: PropertyMetadata = {
+            const metadata: PropertyClassMetadata = {
                 name: String(key),
                 clazz,
             };
@@ -41,7 +41,7 @@ export function CircularInject(
             throw new DecoratorError(`Parameter index must be provided.`);
         }
 
-        const metadata: ConstructorMetadata = {
+        const metadata: ConstructorParamsClassMetadata = {
             index,
             clazz,
         };
@@ -52,7 +52,7 @@ export function CircularInject(
 export function Inject(): PropertyDecorator {
     return (target: object, key: string | symbol) => {
         const clazz = Reflect.getMetadata("design:type", target, key);
-        const metadata: PropertyMetadata = {
+        const metadata: PropertyClassMetadata = {
             name: String(key),
             clazz,
         };

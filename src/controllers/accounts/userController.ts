@@ -1,7 +1,6 @@
 import { KEY_USER_TOKEN } from "@/core/constants";
 import { NonAuth } from "@/core/decorators/authorizationDecorator";
 import { Cacheable } from "@/core/decorators/cacheDecorator";
-import { CircularInject, Inject } from "@/core/decorators/injectionDecorator";
 import { Permis } from "@/core/decorators/permissionDecorator";
 import {
     Body,
@@ -21,11 +20,10 @@ import { UserService } from "@/services/userService";
 
 @Controller("/users")
 export class UserController {
-    @Inject()
-    private redisService!: RedisService;
-
-    @CircularInject(type => UserService)
-    private userService!: UserService;
+    constructor(
+        private userService: UserService,
+        private redisService: RedisService,
+    ) {}
 
     @Post("/register")
     @NonAuth()

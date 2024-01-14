@@ -92,7 +92,7 @@ export class Route {
         for (const classMetadata of this.objectsFactory.getClassMetadataContainer().values()) {
             const router = Router();
 
-            for (const [methodName, methodArgs] of classMetadata.methodArgsMetadata) {
+            for (const [methodName, methodArgs] of classMetadata.methodsArgsMap) {
                 const routeMetadata: RouteMetadata | undefined = Reflect.getMetadata(
                     KEY_ROUTE_PATH,
                     classMetadata.clazz,
@@ -175,7 +175,7 @@ export class Route {
                 const instance = this.objectsFactory.getObject<any>(classMetadata.clazz.name);
 
                 const result = await instance[methodName](
-                    ...classMetadata.methodArgsMetadata.get(methodName)!,
+                    ...classMetadata.methodsArgsMap.get(methodName)!,
                 );
 
                 this.assignStatusCode({ res, classMetadata, methodName });

@@ -28,14 +28,9 @@ export type ClassMetadata = {
     clazz: new () => any;
 
     /**
-     * Constructor parameters class metadata.
+     * Class member methods args.
      */
-    ctorParamClassesMetadata: any[];
-
-    /**
-     * Other member methods args metadata.
-     */
-    methodArgsMetadata: Map<string, string[]>;
+    methodsArgsMap: Map<string, string[]>;
 };
 
 export type RouteMethod = "get" | "post" | "put" | "patch" | "delete";

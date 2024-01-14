@@ -8,73 +8,75 @@ import {
     KEY_INJECTABLE,
     KEY_PROP_CIRCULAR_INJECT,
 } from "../constants";
-import { ConstructorMetadata, PropertyMetadata } from "../decorators/injectionDecorator";
+import {
+    ConstructorParamsClassMetadata,
+    PropertyClassMetadata,
+} from "../decorators/injectionDecorator";
 import { ClassMetadata } from "../decorators/routeDecorator";
 import { ObjectInitializationError } from "../errors";
 import { Commons } from "../utils/commons";
 import { Objects } from "../utils/objects";
 
 export class ObjectsFactory {
-    private classMetadataContainer: Map<string, ClassMetadata> = new Map();
-    private earlySingletonObjects: Map<string, any> = new Map();
-    private singletonObjectsFactory: Map<string, any> = new Map();
+    private classesMetadataMap: Map<string, ClassMetadata> = new Map();
+    private earlySingletonObjectsMap: Map<string, any> = new Map();
+    private singletonObjectsMap: Map<string, any> = new Map();
 
     constructor() {
         this.initialize();
     }
 
     destroy() {
-        this.classMetadataContainer == undefined;
-        this.earlySingletonObjects == undefined;
-        this.singletonObjectsFactory == undefined;
+        this.classesMetadataMap == undefined;
+        this.earlySingletonObjectsMap == undefined;
+        this.singletonObjectsMap == undefined;
 
         logger.info("Objects factory destroyed.");
     }
 
     getClassMetadataContainer() {
-        return this.classMetadataContainer;
+        return this.classesMetadataMap;
     }
 
     getObject<T>(name: string): T {
-        return this.singletonObjectsFactory.get(name);
+        return this.singletonObjectsMap.get(name);
     }
 
     initialize() {
-        this.scanInjectableClassesMetadata();
+        this.scanInjectableClasses();
 
-        Array.from(this.classMetadataContainer.values()).forEach(classMetadata => {
+        for (const classMetadata of this.classesMetadataMap.values()) {
             this.createObjectInstance(classMetadata);
-        });
+        }
 
         logger.info(`Objects factory initialized.`);
     }
 
-    private scanInjectableClassesMetadata() {
+    private scanInjectableClasses() {
         const { baseDir, ext } = Commons.getEnvBaseDirAndExt();
         const files = globSync(`${baseDir}/**/*.${ext}`);
         const fileObjects = files.map(it => require(path.resolve(it)));
 
-        fileObjects.forEach(fileObject => {
-            Object.values(fileObject).forEach((target: any) => {
+        for (const fileObject of fileObjects) {
+            for (const target of Object.values<any>(fileObject)) {
                 if (!this.isInjectableClass(target)) {
-                    return;
+                    continue;
                 }
 
                 const classMetadata: ClassMetadata = {
                     clazz: target,
-                    ctorParamClassesMetadata: [],
-                    methodArgsMetadata: new Map(),
+                    methodsArgsMap: new Map(),
                 };
 
                 Object.getOwnPropertyNames(target.prototype)
-                    .filter(it => it !== "constructor")
+                    .filter(methodName => methodName !== "constructor")
                     .forEach(methodName => {
-                        classMetadata.methodArgsMetadata.set(methodName, []);
+                        classMetadata.methodsArgsMap.set(methodName, []);
                     });
 
-                this.classMetadataContainer.set(target.name, classMetadata);
-            });
-        });
+                this.classesMetadataMap.set(target.name, classMetadata);
+            }
+        }
     }
 
     private createObjectInstance(classMetadata: ClassMetadata) {
@@ -84,97 +86,85 @@ export class ObjectsFactory {
             );
         }
 
-        let instance: any = this.singletonObjectsFactory.get(classMetadata.clazz.name);
+        let instance: any = this.singletonObjectsMap.get(classMetadata.clazz.name);
         if (instance !== undefined) {
             return;
         }
 
-        instance = this.earlySingletonObjects.get(classMetadata.clazz.name);
+        instance = this.earlySingletonObjectsMap.get(classMetadata.clazz.name);
         if (instance !== undefined) {
             return;
         }
 
         instance = new classMetadata.clazz();
-        this.earlySingletonObjects.set(classMetadata.clazz.name, instance);
+        this.earlySingletonObjectsMap.set(classMetadata.clazz.name, instance);
 
         this.populateInstanceProperties(instance, classMetadata);
 
-        this.singletonObjectsFactory.set(classMetadata.clazz.name, instance);
-        this.earlySingletonObjects.delete(classMetadata.clazz.name);
+        this.singletonObjectsMap.set(classMetadata.clazz.name, instance);
+        this.earlySingletonObjectsMap.delete(classMetadata.clazz.name);
     }
 
     private populateInstanceProperties(instance: any, classMetadata: ClassMetadata) {
-        if (classMetadata.ctorParamClassesMetadata === undefined) {
-            return;
-        }
-
-        // Populate constructor classes
+        // Populate constructor parameter classes
         const instanceParamNames = Reflect.ownKeys(instance);
-        const ctorParamClasses: any[] =
+        const constructorParamClassesMetadata: any[] =
             Reflect.getMetadata("design:paramtypes", classMetadata.clazz) ?? [];
 
-        ctorParamClasses.forEach((clazz, index) => {
-            // Resolve circular dependency
+        constructorParamClassesMetadata.forEach((clazz, index) => {
+            // Resolve constructor parameter classes circular dependency
             if (clazz === undefined) {
-                const ctorMetadata: ConstructorMetadata[] =
+                const constructorCircularInjectClassesMetadata: ConstructorParamsClassMetadata[] =
                     Reflect.getMetadata(KEY_CTOR_CIRCULAR_INJECT, classMetadata.clazz) ?? [];
 
-                if (ctorMetadata[index] === undefined) {
+                if (constructorCircularInjectClassesMetadata[index] === undefined) {
                     throw new ObjectInitializationError(
                         `Constructor parameter index "${index}" of class "${classMetadata.clazz.name}" cannot be injected, is there an unresolved circular dependency?`,
                     );
                 }
 
-                clazz = ctorMetadata[index].clazz!();
+                clazz = constructorCircularInjectClassesMetadata[index].clazz!();
             }
+
             const propertyName = String(instanceParamNames[index]);
             this.doPopulateInstanceProperties(instance, propertyName, clazz.name);
         });
 
         // Populate property classes
-
-        const propertiesMetadata: PropertyMetadata[] =
+        const propertyClassesMetadata: PropertyClassMetadata[] =
             Reflect.getMetadata(KEY_INJECT, classMetadata.clazz) ?? [];
-        for (const propertyMetadata of propertiesMetadata) {
-            const propertyName = propertyMetadata.name;
-            let propertyClassName: string = propertyMetadata.clazz?.name;
 
-            // Resolve circular dependency
-            if (propertyClassName === undefined) {
-                const propertiesMetadata: PropertyMetadata[] =
-                    Reflect.getMetadata(KEY_PROP_CIRCULAR_INJECT, classMetadata.clazz) ?? [];
+        const propertyCircularInjectClassesMetadata: PropertyClassMetadata[] =
+            Reflect.getMetadata(KEY_PROP_CIRCULAR_INJECT, classMetadata.clazz) ?? [];
+        const propertyCircularInjectClassesMap = new Map<string, any>();
+        propertyCircularInjectClassesMetadata.forEach(it => {
+            propertyCircularInjectClassesMap.set(it.name, it.clazz().name);
+        });
 
-                const propertyMap = new Map<string, any>();
-                propertiesMetadata.forEach(it => {
-                    propertyMap.set(it.name, it.clazz().name);
-                });
+        for (const propertyClassMetadata of propertyClassesMetadata) {
+            const propertyName = propertyClassMetadata.name;
+            const propertyClassName: string = propertyClassMetadata.clazz?.name;
 
-                if (!propertyMap.has(propertyName)) {
-                    throw new ObjectInitializationError(
-                        `Property "${propertyName}" of class "${classMetadata.clazz.name}" cannot be injected, is there an unresolved circular dependency?`,
-                    );
-                }
+            if (propertyClassName !== undefined) {
+                this.doPopulateInstanceProperties(instance, propertyName, propertyClassName);
 
-                propertyClassName = propertyMap.get(propertyName);
+                continue;
             }
 
-            this.doPopulateInstanceProperties(instance, propertyName, propertyClassName);
-        }
-
-        const lazyPropertiesMetadata: PropertyMetadata[] =
-            Reflect.getMetadata(KEY_PROP_CIRCULAR_INJECT, classMetadata.clazz) ?? [];
-        for (const propertyMetadata of lazyPropertiesMetadata) {
-            const propertyName = propertyMetadata.name;
-
-            if (!propertyMetadata.clazz) {
+            // Check have an other handle of circular dependency
+            if (!propertyCircularInjectClassesMap.has(propertyName)) {
                 throw new ObjectInitializationError(
                     `Property "${propertyName}" of class "${classMetadata.clazz.name}" cannot be injected, is there an unresolved circular dependency?`,
                 );
             }
+        }
+
+        // Resolve property classes circular dependency
+        for (const classMetadata of propertyCircularInjectClassesMetadata) {
             this.doPopulateInstanceProperties(
                 instance,
-                propertyName,
-                propertyMetadata.clazz()?.name,
+                classMetadata.name,
+                classMetadata.clazz()?.name,
             );
         }
     }
@@ -186,7 +176,7 @@ export class ObjectsFactory {
     ) {
         if (instance[propertyName] === undefined) {
             if (this.getObjectInstance(propertyClassName) === undefined) {
-                const propertyClassMetadata = this.classMetadataContainer.get(propertyClassName);
+                const propertyClassMetadata = this.classesMetadataMap.get(propertyClassName);
 
                 // Maybe some property classes not need to inject
                 if (propertyClassMetadata === undefined) {
@@ -203,12 +193,12 @@ export class ObjectsFactory {
 
     private getObjectInstance(className: string) {
         let instance: any;
-        instance = this.singletonObjectsFactory.get(className);
+        instance = this.singletonObjectsMap.get(className);
         if (instance !== undefined) {
             return instance;
         }
 
-        instance = this.earlySingletonObjects.get(className);
+        instance = this.earlySingletonObjectsMap.get(className);
         if (instance !== undefined) {
             return instance;
         }
