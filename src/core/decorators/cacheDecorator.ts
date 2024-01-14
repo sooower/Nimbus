@@ -41,13 +41,11 @@ export function Cacheable(options: CacheSetOptions): MethodDecorator {
             // Cache data
             if (res !== undefined) {
                 if (options.ttl <= 0) {
-                    throw new CacheError(`Cache key ${cacheKey} must have a TTL greater than 0.`);
+                    throw new CacheError(`Cache key "${cacheKey}" must have a TTL greater than 0.`);
                 }
 
                 await redisService.setWithTTL(cacheKey, res, options.ttl, options.timeUnit);
-                logger.debug(
-                    `Cached data, Key <${cacheKey}> set with TTL <${options.ttl}> second.`,
-                );
+                logger.debug(`Cached data, Key "${cacheKey}" set with TTL ${options.ttl} second.`);
             }
 
             return res;
@@ -72,13 +70,11 @@ export function CachePut(options: CacheSetOptions): MethodDecorator {
                 const cacheKey = Commons.generateCacheKey(options.scope, key);
 
                 if (options.ttl <= 0) {
-                    throw new CacheError(`Cache key ${cacheKey} must have a TTL greater than 0.`);
+                    throw new CacheError(`Cache key "${cacheKey}" must have a TTL greater than 0.`);
                 }
 
                 await redisService.setWithTTL(cacheKey, res, options.ttl, options.timeUnit);
-                logger.debug(
-                    `Cached data, Key <${cacheKey}> set with TTL <${options.ttl}> second.`,
-                );
+                logger.debug(`Cached data, Key "${cacheKey}" set with TTL ${options.ttl} second.`);
             }
 
             return res;
@@ -102,7 +98,7 @@ export function CacheEvict(options: CacheRemoveOptions): MethodDecorator {
             const cacheKey = Commons.generateCacheKey(options.scope, key);
             if (await redisService.has(cacheKey)) {
                 await redisService.remove(cacheKey);
-                logger.debug(`Removed cache, Key <${cacheKey}>.`);
+                logger.debug(`Removed cache, Key "${cacheKey}".`);
             }
 
             return res;
