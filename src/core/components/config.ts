@@ -1,4 +1,4 @@
-import path from "path";
+import path from "node:path";
 
 import { Commons } from "../utils/commons";
 import { Objects } from "../utils/objects";

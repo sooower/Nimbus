@@ -1,4 +1,4 @@
-import crypto from "crypto";
+import crypto from "node:crypto";
 import stringify from "safe-stable-stringify";
 
 export const Commons = {

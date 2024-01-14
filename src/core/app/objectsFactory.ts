@@ -1,5 +1,5 @@
 import { globSync } from "glob";
-import path from "path";
+import path from "node:path";
 
 import { logger } from "../components/logger";
 import {
