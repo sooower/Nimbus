@@ -1,11 +1,9 @@
 import stringify from "safe-stable-stringify";
 
-import { objectsFactory } from "@/main";
-
+import { cacheClient } from "../components/cacheClient";
 import { logger } from "../components/logger";
 import { CacheError } from "../errors";
-import { RedisService, TimeUnit } from "../services/redisService";
-import { Commons } from "../utils/commons";
+import { Commons, TimeUnit } from "../utils/commons";
 
 type CacheSetOptions = {
     scope: string;
@@ -24,16 +22,14 @@ export function Cacheable(options: CacheSetOptions): MethodDecorator {
         const originalMethod = descriptor.value;
 
         descriptor.value = async function (...args: any[]) {
-            const redisService = objectsFactory.getObject<RedisService>("RedisService");
-
             const key = parseKeyWithMethodsParams(options.key, originalMethod, args);
 
             const cacheKey = Commons.generateCacheKey(options.scope, key);
 
-            if (await redisService.has(cacheKey)) {
+            if (await cacheClient.has(cacheKey)) {
                 logger.debug("Fetching data from cache.");
 
-                return await redisService.get(cacheKey);
+                return await cacheClient.get(cacheKey);
             }
 
             const res = await originalMethod.apply(this, args);
@@ -44,7 +40,7 @@ export function Cacheable(options: CacheSetOptions): MethodDecorator {
                     throw new CacheError(`Cache key "${cacheKey}" must have a TTL greater than 0.`);
                 }
 
-                await redisService.setWithTTL(cacheKey, res, options.ttl, options.timeUnit);
+                await cacheClient.setWithTTL(cacheKey, res, options.ttl, options.timeUnit);
                 logger.debug(`Cached data, Key "${cacheKey}" set with TTL ${options.ttl} second.`);
             }
 
@@ -60,8 +56,6 @@ export function CachePut(options: CacheSetOptions): MethodDecorator {
         const originalMethod = descriptor.value;
 
         descriptor.value = async function (...args: any[]) {
-            const redisService = objectsFactory.getObject<RedisService>("RedisService");
-
             const res = await originalMethod.apply(this, args);
 
             // Cache data
@@ -73,7 +67,7 @@ export function CachePut(options: CacheSetOptions): MethodDecorator {
                     throw new CacheError(`Cache key "${cacheKey}" must have a TTL greater than 0.`);
                 }
 
-                await redisService.setWithTTL(cacheKey, res, options.ttl, options.timeUnit);
+                await cacheClient.setWithTTL(cacheKey, res, options.ttl, options.timeUnit);
                 logger.debug(`Cached data, Key "${cacheKey}" set with TTL ${options.ttl} second.`);
             }
 
@@ -89,15 +83,13 @@ export function CacheEvict(options: CacheRemoveOptions): MethodDecorator {
         const originalMethod = descriptor.value;
 
         descriptor.value = async function (...args: any[]) {
-            const redisService = objectsFactory.getObject<RedisService>("RedisService");
-
             const res = await originalMethod.apply(this, args);
 
             // Remove cache
             const key = parseKeyWithMethodsParams(options.key, originalMethod, args);
             const cacheKey = Commons.generateCacheKey(options.scope, key);
-            if (await redisService.has(cacheKey)) {
-                await redisService.remove(cacheKey);
+            if (await cacheClient.has(cacheKey)) {
+                await cacheClient.remove(cacheKey);
                 logger.debug(`Removed cache, Key "${cacheKey}".`);
             }
 

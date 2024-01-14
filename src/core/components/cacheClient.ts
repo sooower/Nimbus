@@ -3,7 +3,7 @@ import stringify from "safe-stable-stringify";
 
 import { globalConfig } from "../components/config";
 import { logger } from "../components/logger";
-import { Injectable } from "../decorators/injectionDecorator";
+import { Commons } from "../utils/commons";
 import { Objects } from "../utils/objects";
 
 export enum TimeUnit {
@@ -15,8 +15,7 @@ export enum TimeUnit {
     Month,
 }
 
-@Injectable()
-export class RedisService {
+class CacheClient {
     private redis: Redis;
 
     constructor() {
@@ -39,7 +38,12 @@ export class RedisService {
 
     async setWithTTL(key: string, value: any, ttl = 300, timeUnit = TimeUnit.Second) {
         if (stringify(value) !== undefined) {
-            return !!this.redis.set(key, stringify(value)!, "EX", parseSeconds(ttl, timeUnit));
+            return !!this.redis.set(
+                key,
+                stringify(value)!,
+                "EX",
+                Commons.parseSeconds(ttl, timeUnit),
+            );
         }
 
         return true;
@@ -54,7 +58,7 @@ export class RedisService {
             return false;
         }
 
-        await this.redis.expire(key, parseSeconds(ttl, timeUnit));
+        await this.redis.expire(key, Commons.parseSeconds(ttl, timeUnit));
 
         return true;
     }
@@ -78,19 +82,4 @@ export class RedisService {
     }
 }
 
-function parseSeconds(ttl: number, timeUnit: TimeUnit) {
-    switch (timeUnit) {
-        case TimeUnit.Second:
-            return ttl;
-        case TimeUnit.Minute:
-            return ttl * 60;
-        case TimeUnit.Hour:
-            return ttl * 60 * 60;
-        case TimeUnit.Day:
-            return ttl * 60 * 60 * 24;
-        case TimeUnit.Week:
-            return ttl * 60 * 60 * 24 * 7;
-        case TimeUnit.Month:
-            return ttl * 60 * 60 * 24 * 30;
-    }
-}
+export const cacheClient = new CacheClient();

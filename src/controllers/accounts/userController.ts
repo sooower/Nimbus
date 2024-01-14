@@ -1,29 +1,19 @@
+import { cacheClient } from "@/core/components/cacheClient";
 import { KEY_USER_TOKEN } from "@/core/constants";
 import { NonAuth } from "@/core/decorators/authorizationDecorator";
 import { Cacheable } from "@/core/decorators/cacheDecorator";
 import { Permis } from "@/core/decorators/permissionDecorator";
 import {
-    Body,
-    Controller,
-    Delete,
-    Get,
-    Param,
-    Post,
-    Put,
-    Query,
+    Body, Controller, Delete, Get, Param, Post, Put, Query
 } from "@/core/decorators/routeDecorator";
 import { ServiceError } from "@/core/errors";
-import { RedisService } from "@/core/services/redisService";
 import { Commons } from "@/core/utils/commons";
 import { GetUsersDto, UserLoginDto, UserRegisterDto } from "@/models/accounts/user";
 import { UserService } from "@/services/userService";
 
 @Controller("/users")
 export class UserController {
-    constructor(
-        private userService: UserService,
-        private redisService: RedisService,
-    ) {}
+    constructor(private userService: UserService) {}
 
     @Post("/register")
     @NonAuth()
@@ -39,7 +29,7 @@ export class UserController {
 
     @Put("/logout/:id")
     async logout(@Param("id") id: string) {
-        const res = await this.redisService.remove(Commons.generateCacheKey(KEY_USER_TOKEN, id));
+        const res = await cacheClient.remove(Commons.generateCacheKey(KEY_USER_TOKEN, id));
 
         if (!res) {
             throw new ServiceError(`Failed to logout user <${id}>.`);

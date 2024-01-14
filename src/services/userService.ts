@@ -1,20 +1,18 @@
 import crypto from "node:crypto";
 
+import { cacheClient } from "@/core/components/cacheClient";
 import { DS } from "@/core/components/dataSource";
 import { Jwt } from "@/core/components/jwt";
 import { KEY_USER_TOKEN } from "@/core/constants";
 import { Injectable } from "@/core/decorators/injectionDecorator";
 import { ServiceError } from "@/core/errors";
-import { RedisService, TimeUnit } from "@/core/services/redisService";
-import { Commons } from "@/core/utils/commons";
+import { Commons, TimeUnit } from "@/core/utils/commons";
 import { User } from "@/entities/accounts/user";
 import { UserLoginDto, UserRegisterDto } from "@/models/accounts/user";
 
 @Injectable()
 export class UserService {
     private userRepository = DS.getRepository(User);
-
-    constructor(private redisService: RedisService) {}
 
     async register(userRegisterDto: UserRegisterDto) {
         if (userRegisterDto.password !== userRegisterDto.confirmedPassword) {
@@ -62,7 +60,7 @@ export class UserService {
 
         // Jwt signature
         const token = Jwt.sign({ userId: userRecord.id });
-        await this.redisService.setWithTTL(
+        await cacheClient.setWithTTL(
             Commons.generateCacheKey(KEY_USER_TOKEN, String(userRecord.id)),
             token,
             30,

@@ -1,6 +1,15 @@
 import crypto from "node:crypto";
 import stringify from "safe-stable-stringify";
 
+export enum TimeUnit {
+    Second,
+    Minute,
+    Hour,
+    Day,
+    Week,
+    Month,
+}
+
 export const Commons = {
     getEnvBaseDirAndExt() {
         const env = process.env.NODE_ENV ?? "dev";
@@ -60,5 +69,22 @@ export const Commons = {
             str = str.slice(0, str.length - 1);
         }
         return str;
+    },
+
+    parseSeconds(time: number, timeUnit: TimeUnit) {
+        switch (timeUnit) {
+            case TimeUnit.Second:
+                return time;
+            case TimeUnit.Minute:
+                return time * 60;
+            case TimeUnit.Hour:
+                return time * 60 * 60;
+            case TimeUnit.Day:
+                return time * 60 * 60 * 24;
+            case TimeUnit.Week:
+                return time * 60 * 60 * 24 * 7;
+            case TimeUnit.Month:
+                return time * 60 * 60 * 24 * 30;
+        }
     },
 };

@@ -4,6 +4,7 @@ import { Express, Router } from "express";
 import { Permission } from "@/entities/accounts/permission";
 import { Role } from "@/entities/accounts/role";
 
+import { cacheClient } from "../components/cacheClient";
 import { globalConfig } from "../components/config";
 import { DS } from "../components/dataSource";
 import { Jwt } from "../components/jwt";
@@ -37,7 +38,6 @@ import {
     RouteInitializationError,
     ValidationError,
 } from "../errors";
-import { RedisService } from "../services/redisService";
 import { Context, Next, Req, Res } from "../types";
 import { Commons } from "../utils/commons";
 import { Objects } from "../utils/objects";
@@ -74,14 +74,11 @@ type AssignStatusCodeOptions = {
 
 export class Route {
     private routeParams: Map<string, string> = new Map();
-    private redisService: RedisService;
 
     constructor(
         private objectsFactory: ObjectsFactory,
         private engine: Express,
     ) {
-        this.redisService = objectsFactory.getObject("RedisService");
-
         this.routeParams.set(KEY_ROUTE_QUERY, "query");
         this.routeParams.set(KEY_ROUTE_PARAMS, "params");
         this.routeParams.set(KEY_ROUTE_HEADERS, "headers");
@@ -279,9 +276,7 @@ export class Route {
         }
 
         const userId: string = payload.userId;
-        const userToken = await this.redisService.get(
-            Commons.generateCacheKey(KEY_USER_TOKEN, userId),
-        );
+        const userToken = await cacheClient.get(Commons.generateCacheKey(KEY_USER_TOKEN, userId));
         if (userToken === null) {
             throw new AuthorizationError(`Please login first.`);
         }

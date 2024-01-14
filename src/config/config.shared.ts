@@ -1,4 +1,4 @@
 export default {
-    port: 4001,
+    port: 4002,
     apiPrefix: "/api",
 };

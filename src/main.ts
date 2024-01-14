@@ -1,8 +1,8 @@
 import { Application } from "./core/app";
 import { ObjectsFactory } from "./core/app/objectsFactory";
+import { cacheClient } from "./core/components/cacheClient";
 import { DS } from "./core/components/dataSource";
 import { logger } from "./core/components/logger";
-import { RedisService } from "./core/services/redisService";
 
 export const objectsFactory = new ObjectsFactory();
 
@@ -16,7 +16,7 @@ new Application(objectsFactory, {
         await DS.destroy();
         logger.info("Data Source destroyed.");
 
-        await objectsFactory.getObject<RedisService>("RedisService").quit();
+        await cacheClient.quit();
         logger.info(`"RedisService" destroyed.`);
     },
 }).run();
