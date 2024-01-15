@@ -4,7 +4,14 @@ import { NonAuth } from "@/core/decorators/authorizationDecorator";
 import { Cacheable } from "@/core/decorators/cacheDecorator";
 import { Permis } from "@/core/decorators/permissionDecorator";
 import {
-    Body, Controller, Delete, Get, Param, Post, Put, Query
+    Body,
+    Controller,
+    Delete,
+    Get,
+    Param,
+    Post,
+    Put,
+    Query,
 } from "@/core/decorators/routeDecorator";
 import { ServiceError } from "@/core/errors";
 import { Commons } from "@/core/utils/commons";

@@ -7,12 +7,12 @@ import { logger } from "./core/components/logger";
 export const objectsFactory = new ObjectsFactory();
 
 new Application(objectsFactory, {
-    async onReady() {
+    async beforeReady() {
         await dataSource.initialize();
         logger.info("Data Source initialized.");
     },
 
-    async onClose() {
+    async beforeDestroy() {
         await dataSource.destroy();
         logger.info("Data Source destroyed.");
 

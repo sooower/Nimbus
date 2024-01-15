@@ -15,12 +15,12 @@ type LifecycleEvents = {
     /**
      * Do something before application started.
      */
-    onReady: () => Promise<void>;
+    beforeReady: () => Promise<void>;
 
     /**
      * Do something before application shutdown.
      */
-    onClose: () => Promise<void>;
+    beforeDestroy: () => Promise<void>;
 };
 
 export class Application {
@@ -51,20 +51,24 @@ export class Application {
         });
     }
 
+    private async onReady() {
+        await this.lifecycleEvents.beforeReady();
+    }
+
+    private async onDestroy() {
+        await this.lifecycleEvents.beforeDestroy();
+        this.objectsFactory.destroy();
+    }
+
     private async registerLifecycleEvents() {
-        const { onReady, onClose } = this.lifecycleEvents;
-        await onReady();
+        await this.onReady();
 
         process.on("SIGINT", async () => {
-            await onClose();
-            this.objectsFactory.destroy();
-
+            await this.onDestroy();
             process.exit(0);
         });
         process.on("SIGTERM", async () => {
-            await onClose();
-            this.objectsFactory.destroy();
-
+            await this.onDestroy();
             process.exit(0);
         });
     }
