@@ -6,8 +6,8 @@
     "main": "dist/main.js",
     "scripts": {
         "dev": "ts-node-dev -r tsconfig-paths/register src/main.ts",
-        "build": "pnpm run lint && rimraf dist && tsc",
-        "prod": "pnpm run build && pm2 start pm2.config.json",
+        "build": "pnpm lint && rimraf dist && tsc",
+        "prod": "pm2 start pm2.config.json",
         "format": "prettier --write ./{**,.**}.{ts,js,json,yaml}",
         "lint": "eslint src"
     },
