@@ -12,9 +12,9 @@ export default {
         username: "fomopay",
         password: "password",
         database: "pg.test",
-        entities: ["src/entities/**/*.ts"],
-        migrations: ["src/migrations/**/*.ts"],
-        subscribers: ["src/subscribers/**/*.ts"],
+        entities: ["src/**/entities/**/*.ts"],
+        migrations: ["src/**/migrations/**/*.ts"],
+        subscribers: ["src/**/subscribers/**/*.ts"],
     },
     cronJobs: [
         {
