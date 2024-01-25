@@ -1,22 +1,22 @@
-import { Application } from "./core/app";
-import { ObjectsFactory } from "./core/app/objectsFactory";
-import { cacheClient } from "./core/components/cacheClient";
-import { dataSource } from "./core/components/dataSource";
-import { logger } from "./core/components/logger";
+import { Application } from "./app";
+import { ObjectsFactory } from "./app/objectsFactory";
+import { cacheService } from "./common/services/cacheService";
+import { dataSourceService } from "./common/services/dataSourceService";
+import { loggerService } from "./common/services/loggerService";
 
 export const objectsFactory = new ObjectsFactory();
 
-new Application(objectsFactory, {
+void new Application(objectsFactory, {
     async beforeReady() {
-        await dataSource.initialize();
-        logger.info("Data Source initialized.");
+        await dataSourceService.initialize();
+        loggerService.info("Data Source initialized.");
     },
 
     async beforeDestroy() {
-        await dataSource.destroy();
-        logger.info("Data Source destroyed.");
+        await dataSourceService.destroy();
+        loggerService.info("Data Source destroyed.");
 
-        await cacheClient.quit();
-        logger.info(`"RedisService" destroyed.`);
+        await cacheService.quit();
+        loggerService.info(`"RedisService" destroyed.`);
     },
 }).run();
