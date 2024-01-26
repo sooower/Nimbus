@@ -1,6 +1,5 @@
 import { validate } from "class-validator";
 import { Express, Router } from "express";
-import { Context } from "vm";
 
 import {
     KEY_NONE_AUTH,
@@ -36,7 +35,7 @@ import { configService } from "@/common/services/configService";
 import { dataSourceService } from "@/common/services/dataSourceService";
 import { jwtService } from "@/common/services/jwtService";
 import { loggerService } from "@/common/services/loggerService";
-import { Next, Req, Res } from "@/common/types";
+import { Context, Next, Req, Res } from "@/common/types";
 import { CommonUtil } from "@/common/utils/commonUtil";
 import { ObjectsUtil } from "@/common/utils/objectUtil";
 import { Permission } from "@/modules/accounts/entities/permission";
