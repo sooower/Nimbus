@@ -335,10 +335,11 @@ export class Route {
     private transferPlainToInstance(clazz: new () => any, obj: any) {
         const instance = new clazz();
 
+        const propertiesArrayMetadata: PropertyArrayMetadata[] =
+            Reflect.getMetadata(KEY_PARSE_ARRAY_TYPE, clazz) ?? [];
+
         Object.keys(obj).forEach(key => {
             // If property type is array, instantiate element class of the array at first
-            const propertiesArrayMetadata: PropertyArrayMetadata[] =
-                Reflect.getMetadata(KEY_PARSE_ARRAY_TYPE, clazz) ?? [];
             for (const propertyArrayMetadata of propertiesArrayMetadata) {
                 if (propertyArrayMetadata.name === key) {
                     instance[key] = obj[key].map((it: any) =>
@@ -377,7 +378,7 @@ export class Route {
             switch (propertyTypeName) {
                 case "Number": {
                     if (!/^[-+]?[0-9]+(\.[0-9]*)?$/.test(propertyValue)) {
-                        throw new ValidationError(`\`${propertyName}\` must be a number value.`);
+                        throw new ValidationError(`"${propertyName}" must be a number value.`);
                     }
 
                     instance[propertyName] = Number(instance[propertyName]);
@@ -385,7 +386,7 @@ export class Route {
                 }
                 case "Boolean": {
                     if (!/^(true|false)$/.test(propertyValue)) {
-                        throw new ValidationError(`\`${propertyName}\` must be a boolean value.`);
+                        throw new ValidationError(`"${propertyName}" must be a boolean value.`);
                     }
 
                     instance[propertyName] = instance[propertyName] === "true";
